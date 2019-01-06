@@ -1,0 +1,7 @@
+*.o
+*.d
+*.S
+*_gen.c
+*_gen.h
+*.elf
+*.map

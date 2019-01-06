@@ -33,9 +33,6 @@
 #include "dbg.h"
 #include "dbg_uart.h"
 
-/* DK4 includes */
-#include "LightingBoard.h"
-
 /* Device includes */
 #include "DriverBulb.h"
 
@@ -103,17 +100,6 @@ PUBLIC void DriverBulb_vInit(void)
 
 	if (bFirstCalled)
 	{
-		bRGB_LED_Enable();
-		bRGB_LED_Off();
-		bWhite_LED_Enable();
-		bWhite_LED_Off();
-
-#if defined RGB || defined CCT
-		bRGB_LED_SetLevel(255,255,255);
-		bRGB_LED_SetGroupLevel( 255);
-#else
-		bWhite_LED_SetLevel(255);
-#endif
 		bFirstCalled = FALSE;
 	}
 }
@@ -130,34 +116,18 @@ PUBLIC void DriverBulb_vOff(void)
 
 PUBLIC void DriverBulb_vSetOnOff(bool_t bOn)
 {
-#if defined RGB || defined CCT
-	(bOn) ? bRGB_LED_On(): bRGB_LED_Off();
-#else
-	(bOn) ? bWhite_LED_On() : bWhite_LED_Off();
-#endif
      bBulbOn =  bOn;
      DBG_vPrintf(TRACE_DRIVER, "\nS:%s",(bOn ? "ON" : "OFF"));
 }
 
 PUBLIC void DriverBulb_vSetLevel(uint32 u32Level)
 {
-
-#if defined RGB || defined CCT
-	bRGB_LED_SetGroupLevel(MAX(1,u32Level));
-#else
-	if (bBulbOn)
-	{
-		bWhite_LED_SetLevel(MAX(1,u32Level));
-	}
-#endif
-	DBG_vPrintf(TRACE_DRIVER, "\nL%d",u32Level);
+	DBG_vPrintf(TRACE_DRIVER, "\nL:%d",u32Level);
 }
 
 PUBLIC void DriverBulb_vSetColour(uint32 u32Red, uint32 u32Green, uint32 u32Blue)
 {
-#ifdef RGB
-	bRGB_LED_SetLevel(u32Red,u32Green,u32Blue);
-#endif
+	DBG_vPrintf(TRACE_DRIVER, "\nC:%d %d %d",u32Red,u32Green,u32Blue);
 }
 
 PUBLIC bool_t DriverBulb_bOn(void)
@@ -182,14 +152,7 @@ PUBLIC void DriverBulb_vTick(void)
 
 PUBLIC int16 DriverBulb_i16Analogue(uint8 u8Adc, uint16 u16AdcRead)
 {
-	if (u8Adc == E_AHI_ADC_SRC_VOLT)
-	{
-		return ((u16AdcRead * 3600)/ADC_FULL_SCALE);
-	}
-	else
-	{
-		return(ADC_FULL_SCALE);
-	}
+	return(ADC_FULL_SCALE);
 }
 
 /* This function replicates the 'real bulb' set colour temperature function called */

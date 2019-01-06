@@ -30,7 +30,7 @@
 #
 ############################################################################
 
-LIGHT ?= Light_ExtendedColorLight
+LIGHT ?= Light_ColorLight
 
 # Application target name
 TARGET = $(LIGHT)
@@ -41,15 +41,15 @@ PDM_BUILD_TYPE ?=_EEPROM
 ###############################################################################
 #User definable make parameters that may be overwritten from the command line
 
-# Default target device is the JN5169
+# Default target device is the JN5168
 
-JENNIC_CHIP ?= JN5169
+JENNIC_CHIP ?= JN5168
 
 JENNIC_CHIP_FAMILY ?=JN516x 
 
 JENNIC_SDK ?= JN-SW-4168
 ###############################################################################
-# Default DK4 development kit target hardware
+# Default meshbee target hardware
 DR ?= DR1175
 ifeq ($(DR), DR1175)
 JENNIC_PCB ?= DEVKIT4
@@ -191,8 +191,8 @@ endif
 
 #CFLAGS += -DNXP_HARDWARE
 #CFLAGS += -DDEBUG_ZCL
-#CFLAGS += -DDEBUG_APP
-#CFLAGS += -DDEBUG_START_UP
+CFLAGS += -DDEBUG_APP
+CFLAGS += -DDEBUG_START_UP
 #CFLAGS += -DDEBUG_LIGHT_NODE
 #CFLAGS += -DDEBUG_LIGHT_TASK
 #CFLAGS += -DDEBUG_JOIN
@@ -264,7 +264,8 @@ APPSRC += appZpsBeaconHandler.c
 
 #Light device type and it's associated driver 
 APPSRC += App_$(TARGET).c
-APPSRC += DriverBulb_$(DR).c
+#APPSRC += DriverBulb_$(DR).c
+APPSRC += DriverBulb_Bridge.c
 APPSRC += DriverBulb_Shim.c
 
 CFLAGS +=-D$(DR)

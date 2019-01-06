@@ -120,10 +120,12 @@ extern uint8 u8PDM_GetFileSystemOccupancy();
 /****************************************************************************/
 extern void *_stack_low_water_mark;
 
+/* On/Sleep Led */
+//extern IO_T SleepLed;
+
 /****************************************************************************/
 /***        Local Variables                                               ***/
 /****************************************************************************/
-
 
 /****************************************************************************/
 /***        Exported Functions                                            ***/
@@ -186,6 +188,10 @@ PUBLIC void vAppMain(void)
 #endif
 
      DBG_vUartInit(DBG_E_UART_0, DBG_E_UART_BAUD_RATE_115200);
+
+ 	DBG_vPrintf(TRACE_START, "***********************************************\n");
+ 	DBG_vPrintf(TRACE_START, "LIGHT NODE START                               \n");
+ 	DBG_vPrintf(TRACE_START, "***********************************************\n");
 
     /* Early call to Bulb initialisation to enable fast start up    */
 

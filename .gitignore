@@ -5,3 +5,5 @@
 *_gen.h
 *.elf
 *.map
+*.bin
+*.ota

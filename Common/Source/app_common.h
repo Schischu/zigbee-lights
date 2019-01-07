@@ -38,44 +38,8 @@
 
 #include "app_timer_driver.h"
 
-#ifdef Controller_ColorController
-    #include "App_Controller_ColorController.h"
-#endif
-
-#ifdef Controller_NonColorController
-    #include "App_Controller_NonColorController.h"
-#endif
-
-#ifdef Controller_NonColorSceneController
-    #include "App_Controller_NonColorSceneController.h"
-#endif
-
-#ifdef Controller_ColorSceneController
-    #include "App_Controller_ColorSceneController.h"
-#endif
-
-#ifdef Controller_ControlBridge
-    #include "App_Controller_ControlBridge.h"
-#endif
-
-#ifdef Controller_OnOffSensor
-    #include "App_Controller_OnOffSensor.h"
-#endif
-
-#ifdef Light_OnOffLight
-    #include "App_Light_OnOffLight.h"
-#endif
-
-#ifdef Light_OnOffPlug
-    #include "App_Light_OnOffPlug.h"
-#endif
-
 #ifdef Light_DimmableLight
     #include "App_Light_DimmableLight.h"
-#endif
-
-#ifdef Light_DimmablePlug
-    #include "App_Light_DimmablePlug.h"
 #endif
 
 #ifdef Light_ColorLight

@@ -187,7 +187,7 @@ PUBLIC void vAppMain(void)
     bAHI_SetClockRate(3); /* Move CPU to 32 MHz  vAHI_OptimiseWaitStates automatically called */
 #endif
 
-     DBG_vUartInit(DBG_E_UART_0, DBG_E_UART_BAUD_RATE_115200);
+     DBG_vUartInit(DBG_E_UART_1, DBG_E_UART_BAUD_RATE_115200);
 
  	DBG_vPrintf(TRACE_START, "***********************************************\n");
  	DBG_vPrintf(TRACE_START, "LIGHT NODE START                               \n");
@@ -300,7 +300,7 @@ PRIVATE void vInitialiseApp(void)
     /* Initialise the debug diagnostics module to use UART0 at 115K Baud;
      * Do not use UART 1 if LEDs are used, as it shares DIO with the LEDS
      */
-    DBG_vUartInit(DBG_E_UART_0, DBG_E_UART_BAUD_RATE_115200);
+    DBG_vUartInit(DBG_E_UART_1, DBG_E_UART_BAUD_RATE_115200);
 
     /* Initialise JenOS modules. Initialise Power Manager even on non-sleeping nodes
      * as it allows the device to doze when in the idle task

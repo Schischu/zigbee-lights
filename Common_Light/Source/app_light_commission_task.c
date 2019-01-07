@@ -133,8 +133,12 @@ typedef struct {
 tsStartParams sStartParams;
 
 ZPS_tsInterPanAddress sDstAddr;
+//PRIVATE tsReg128
+//        sMasterKey = { 0x11223344, 0x55667788, 0x99aabbcc, 0xddeeff00 };
+
 PRIVATE tsReg128
-        sMasterKey = { 0x11223344, 0x55667788, 0x99aabbcc, 0xddeeff00 };
+        sMasterKey = { 0x9F5595F1, 0x0257C8A4, 0x69CBF42B, 0xC93FEE31 };
+
 PRIVATE tsReg128 sCertKey = { 0xc0c1c2c3, 0xc4c5c6c7, 0xc8c9cacb, 0xcccdcecf };
 
 tsZllState sZllState = { FACTORY_NEW, E_STARTUP, ZLL_SKIP_CH1 };

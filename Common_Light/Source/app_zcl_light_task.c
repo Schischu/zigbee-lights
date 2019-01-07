@@ -153,6 +153,10 @@ PUBLIC void* psGetDeviceTable(void) {
  ****************************************************************************/
 PUBLIC void APP_ZCL_vInitialise(void)
 {
+	DBG_vPrintf(TRACE_ZCL, "***********************************************\n");
+	DBG_vPrintf(TRACE_ZCL, "LIGHT NODE INITIALISE                          \n");
+	DBG_vPrintf(TRACE_ZCL, "***********************************************\n");
+
     teZCL_Status eZCL_Status;
     /* Initialise ZLL */
     eZCL_Status = eZLL_Initialise(&APP_ZCL_cbGeneralCallback, apduZCL);

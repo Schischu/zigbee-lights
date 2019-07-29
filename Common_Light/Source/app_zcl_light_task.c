@@ -63,7 +63,7 @@
 #include "commission_endpoint.h"
 
 #include "app_zcl_light_task.h"
-#include "app_manage_temperature.h"
+//#include "app_manage_temperature.h"
 #include "zpr_light_node.h"
 #include "app_common.h"
 #include "identify.h"
@@ -73,7 +73,7 @@
 #include "zps_gen.h"
 
 #include "app_events.h"
-#include "app_light_interpolation.h"
+//#include "app_light_interpolation.h"
 #include "DriverBulb.h"
 
 #include <string.h>
@@ -99,9 +99,16 @@
 
 #define TRACE_PATH  FALSE
 
+#ifndef BULBS_COUNT
+#define BULBS_COUNT 1u
+#endif
+
 /****************************************************************************/
 /***        Macro Definitions                                             ***/
 /****************************************************************************/
+
+#define LIGHT_INDEX(endpoint) \
+	(endpoint - LIGHT_COLORLIGHT_LIGHT_00_ENDPOINT)
 
 /****************************************************************************/
 /***        Type Definitions                                              ***/
@@ -153,6 +160,8 @@ PUBLIC void* psGetDeviceTable(void) {
  ****************************************************************************/
 PUBLIC void APP_ZCL_vInitialise(void)
 {
+	uint8 uIndex = 0;
+
 	DBG_vPrintf(TRACE_ZCL, "***********************************************\n");
 	DBG_vPrintf(TRACE_ZCL, "LIGHT NODE INITIALISE                          \n");
 	DBG_vPrintf(TRACE_ZCL, "***********************************************\n");
@@ -177,17 +186,20 @@ PUBLIC void APP_ZCL_vInitialise(void)
             DBG_vPrintf(TRACE_ZCL, "Error: eZLL_RegisterCommissionEndPoint:%d\r\n", eZCL_Status);
     }
 
+    for (uIndex = 0; uIndex < ZLL_NUMBER_DEVICES; uIndex++)
+    {
 #ifdef CLD_COLOUR_CONTROL
-    DBG_vPrintf(TRACE_LIGHT_TASK, "Capabilities %04x\n", sLight.sColourControlServerCluster.u16ColourCapabilities);
+        DBG_vPrintf(TRACE_LIGHT_TASK, "Capabilities %04x\n", sLight[uIndex].sColourControlServerCluster.u16ColourCapabilities);
 #endif
 
-    #ifdef CLD_LEVEL_CONTROL
-        sLight.sLevelControlServerCluster.u8CurrentLevel = CLD_LEVELCONTROL_MAX_LEVEL;
-    #endif
+#ifdef CLD_LEVEL_CONTROL
+        sLight[uIndex].sLevelControlServerCluster.u8CurrentLevel = CLD_LEVELCONTROL_MAX_LEVEL;
+#endif
 
-    sLight.sOnOffServerCluster.bOnOff = TRUE;
+        sLight[uIndex].sOnOffServerCluster.bOnOff = TRUE;
 
-    vAPP_ZCL_DeviceSpecific_Init();
+        vAPP_ZCL_DeviceSpecific_Init(uIndex);
+    }
 
 #ifdef CLD_OTA
     vAppInitOTA();
@@ -207,9 +219,9 @@ PUBLIC void APP_ZCL_vInitialise(void)
  * void
  *
  ****************************************************************************/
-PUBLIC void APP_ZCL_vSetIdentifyTime(uint16 u16Time)
+PUBLIC void APP_ZCL_vSetIdentifyTime(uint8 u8Index, uint16 u16Time)
 {
-    sLight.sIdentifyServerCluster.u16IdentifyTime = u16Time;
+    sLight[u8Index].sIdentifyServerCluster.u16IdentifyTime = u16Time;
 }
 
 /****************************************************************************
@@ -229,6 +241,8 @@ OS_TASK(Tick_Task)
     static uint32 u32Tick10ms = 9;
     static uint32 u32Tick1Sec = 99;
 
+    uint8 u8index;
+
     tsZCL_CallBackEvent sCallBackEvent;
 
     OS_eContinueSWTimer(APP_TickTimer, /*TEN_HZ_TICK_TIME*/APP_TIME_MS(10), NULL);
@@ -237,7 +251,8 @@ OS_TASK(Tick_Task)
     u32Tick1Sec++;
 
     /* Provide processor cycles to any drivers that need time behaviour */
-    DriverBulb_vTick();
+    for (u8index=0; u8index < BULBS_COUNT; u8index++)
+    	DriverBulb_vTick(u8index);
 
     /* Wrap the Tick10ms counter and provide 100ms ticks to cluster */
     if (u32Tick10ms > 9)
@@ -270,7 +285,7 @@ OS_TASK(Tick_Task)
 
 
     /* Pass the tick count into the temperature module for scheduling */
-    APP_vManageTemperatureTick(u32Tick1Sec);
+    //APP_vManageTemperatureTick(u32Tick1Sec);
 
 
 }
@@ -354,7 +369,7 @@ PRIVATE void APP_ZCL_cbGeneralCallback(tsZCL_CallBackEvent *psEvent)
         break;
 
     case E_ZCL_CBET_UNHANDLED_EVENT:
-        DBG_vPrintf(TRACE_ZCL, "\nEVT: Unhandled Event\r\n");
+        DBG_vPrintf(TRACE_ZCL, "\nEVT: Unhandled Event %d\r\n", psEvent->eEventType);
         break;
 
     case E_ZCL_CBET_READ_ATTRIBUTES_RESPONSE:
@@ -425,7 +440,7 @@ PRIVATE void APP_ZCL_cbEndpointCallback(tsZCL_CallBackEvent *psEvent)
         break;
 
     case E_ZCL_CBET_UNHANDLED_EVENT:
-        DBG_vPrintf(TRACE_ZCL, "\nEP EVT: Unhandled event");
+        DBG_vPrintf(TRACE_ZCL, "\nEP EVT: Unhandled event %d", psEvent->eEventType);
         break;
 
     case E_ZCL_CBET_READ_INDIVIDUAL_ATTRIBUTE_RESPONSE:
@@ -479,57 +494,57 @@ PRIVATE void APP_ZCL_cbEndpointCallback(tsZCL_CallBackEvent *psEvent)
                 }
 
                 #if (defined CLD_COLOUR_CONTROL) && !(defined DR1221) && !(defined DR1221_Dimic)
-                    vApp_eCLD_ColourControl_GetRGB(&u8Red, &u8Green, &u8Blue);
+                    vApp_eCLD_ColourControl_GetRGB(LIGHT_INDEX(psEvent->u8EndPoint), &u8Red, &u8Green, &u8Blue);
 #if TRACE_LIGHT_TASK
 
                     DBG_vPrintf(TRACE_LIGHT_TASK, "\nR %d G %d B %d L %d ",
-                                          u8Red, u8Green, u8Blue, sLight.sLevelControlServerCluster.u8CurrentLevel);
+                                          u8Red, u8Green, u8Blue, sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel);
 #if (CLD_COLOURCONTROL_COLOUR_CAPABILITIES & COLOUR_CAPABILITY_HUE_SATURATION_SUPPORTED)
                     DBG_vPrintf(TRACE_LIGHT_TASK, "Hue %d Sat %d ",
-                                         sLight.sColourControlServerCluster.u8CurrentHue,
-                                         sLight.sColourControlServerCluster.u8CurrentSaturation);
+                                         sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u8CurrentHue,
+                                         sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u8CurrentSaturation);
 #endif
 #if (CLD_COLOURCONTROL_COLOUR_CAPABILITIES & COLOUR_CAPABILITY_XY_SUPPORTED)
                     DBG_vPrintf(TRACE_LIGHT_TASK, "X %d Y %d ",
-                                          sLight.sColourControlServerCluster.u16CurrentX,
-                                          sLight.sColourControlServerCluster.u16CurrentY);
+                                          sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16CurrentX,
+                                          sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16CurrentY);
 #endif
 #if (CLD_COLOURCONTROL_COLOUR_CAPABILITIES & COLOUR_CAPABILITY_COLOUR_TEMPERATURE_SUPPORTED)
                     DBG_vPrintf(TRACE_LIGHT_TASK, "T %dK ",
-                                         1000000 / sLight.sColourControlServerCluster.u16ColourTemperatureMired);
+                                         1000000 / sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16ColourTemperatureMired);
 #endif
                     DBG_vPrintf(TRACE_LIGHT_TASK, "M %d On %d OnTime %d OffTime %d",
-                                        sLight.sColourControlServerCluster.u8ColourMode,
-                                        sLight.sOnOffServerCluster.bOnOff,
-                                        sLight.sOnOffServerCluster.u16OnTime,
-                                        sLight.sOnOffServerCluster.u16OffWaitTime);
-#endif
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u8ColourMode,
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.u16OnTime,
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.u16OffWaitTime);
+#endif /*TRACE_LIGHT_TASK*/
 
-                    vRGBLight_SetLevels(sLight.sOnOffServerCluster.bOnOff,
-                            sLight.sLevelControlServerCluster.u8CurrentLevel,
+                    vRGBLight_SetLevels(LIGHT_INDEX(psEvent->u8EndPoint), sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                            sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel,
                             u8Red,
                             u8Green,
                             u8Blue);
                 #elif (defined CLD_COLOUR_CONTROL) && ((defined DR1221) || (defined DR1221_Dimic))
-                    DBG_vPrintf(TRACE_LIGHT_TASK, "\nOOOn =%d :L=%d T=%dK",sLight.sOnOffServerCluster.bOnOff,
-                                                                         sLight.sLevelControlServerCluster.u8CurrentLevel,
-                                                                         (1000000 / sLight.sColourControlServerCluster.u16ColourTemperatureMired));
+                    DBG_vPrintf(TRACE_LIGHT_TASK, "\nOOOn =%d :L=%d T=%dK",sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                                                                         sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel,
+                                                                         (1000000 / sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16ColourTemperatureMired));
 
                     /* controllable colour temperature tunable white (CCT TW) bulbs */
-                    vTunableWhiteLightSetLevels(sLight.sOnOffServerCluster.bOnOff,
-                                                   sLight.sLevelControlServerCluster.u8CurrentLevel,
-                                                   sLight.sColourControlServerCluster.u16ColourTemperatureMired);
+                    vTunableWhiteLightSetLevels(sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                                                   sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel,
+                                                   sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16ColourTemperatureMired);
 
                 #elif (defined MONO_WITH_LEVEL)
 
                     /* Dimmable monochrome lamps */
-                    vSetBulbState(sLight.sOnOffServerCluster.bOnOff, sLight.sLevelControlServerCluster.u8CurrentLevel);
+                    vSetBulbState(sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff, sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel);
                 #elif (defined MONO_ON_OFF)
                     /*
                      * Bulb with onoff only
                      */
                     DBG_vPrintf(TRACE_PATH, "\nJP on_off only bulb");
-                    vSetBulbState( sLight.sOnOffServerCluster.bOnOff);
+                    vSetBulbState( sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff);
                 #endif
             }
             break;
@@ -538,10 +553,10 @@ PRIVATE void APP_ZCL_cbEndpointCallback(tsZCL_CallBackEvent *psEvent)
                 tsCLD_IdentifyCallBackMessage *psCallBackMessage = (tsCLD_IdentifyCallBackMessage*)psEvent->uMessage.sClusterCustomMessage.pvCustomData;
                 if (psCallBackMessage->u8CommandId == E_CLD_IDENTIFY_CMD_TRIGGER_EFFECT) {
                     DBG_vPrintf(TRACE_LIGHT_TASK, "Identify Cust CB %d\n", psCallBackMessage->uMessage.psTriggerEffectRequestPayload->eEffectId);
-                    vStartEffect(psCallBackMessage->uMessage.psTriggerEffectRequestPayload->eEffectId);
+                    vStartEffect(LIGHT_INDEX(psEvent->u8EndPoint), psCallBackMessage->uMessage.psTriggerEffectRequestPayload->eEffectId);
                 } else if (psCallBackMessage->u8CommandId == E_CLD_IDENTIFY_CMD_IDENTIFY) {
                     DBG_vPrintf(TRACE_PATH, "\nJP E_CLD_IDENTIFY_CMD_IDENTIFY");
-                    APP_vHandleIdentify(sLight.sIdentifyServerCluster.u16IdentifyTime);
+                    APP_vHandleIdentify(LIGHT_INDEX(psEvent->u8EndPoint), sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sIdentifyServerCluster.u16IdentifyTime);
                 }
             }
             break;
@@ -570,69 +585,69 @@ PRIVATE void APP_ZCL_cbEndpointCallback(tsZCL_CallBackEvent *psEvent)
         }
         else if (psEvent->psClusterInstance->psClusterDefinition->u16ClusterEnum == GENERAL_CLUSTER_ID_IDENTIFY)
         {
-            APP_vHandleIdentify(sLight.sIdentifyServerCluster.u16IdentifyTime);
+            APP_vHandleIdentify(LIGHT_INDEX(psEvent->u8EndPoint), sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sIdentifyServerCluster.u16IdentifyTime);
         }
         else
         {
-            if (sLight.sIdentifyServerCluster.u16IdentifyTime == 0) {
+            if (sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sIdentifyServerCluster.u16IdentifyTime == 0) {
                 /*
                  * If not identifying then do the light
                  */
                 //DBG_vPrintf(TRACE_PATH, "\nPath 2");
                 #if (defined CLD_COLOUR_CONTROL) && !(defined DR1221) && !(defined DR1221_Dimic)
-                    vApp_eCLD_ColourControl_GetRGB(&u8Red, &u8Green, &u8Blue);
+                    vApp_eCLD_ColourControl_GetRGB(LIGHT_INDEX(psEvent->u8EndPoint), &u8Red, &u8Green, &u8Blue);
 #if TRACE_LIGHT_TASK
 
                     DBG_vPrintf(TRACE_LIGHT_TASK, "\nR %d G %d B %d L %d ",
-                                          u8Red, u8Green, u8Blue, sLight.sLevelControlServerCluster.u8CurrentLevel);
+                                          u8Red, u8Green, u8Blue, sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel);
 #if (CLD_COLOURCONTROL_COLOUR_CAPABILITIES & COLOUR_CAPABILITY_HUE_SATURATION_SUPPORTED)
                     DBG_vPrintf(TRACE_LIGHT_TASK, "Hue %d Sat %d ",
-                                         sLight.sColourControlServerCluster.u8CurrentHue,
-                                         sLight.sColourControlServerCluster.u8CurrentSaturation);
+                                         sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u8CurrentHue,
+                                         sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u8CurrentSaturation);
 #endif
 #if (CLD_COLOURCONTROL_COLOUR_CAPABILITIES & COLOUR_CAPABILITY_XY_SUPPORTED)
                     DBG_vPrintf(TRACE_LIGHT_TASK, "X %d Y %d ",
-                                          sLight.sColourControlServerCluster.u16CurrentX,
-                                          sLight.sColourControlServerCluster.u16CurrentY);
+                                          sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16CurrentX,
+                                          sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16CurrentY);
 #endif
 #if (CLD_COLOURCONTROL_COLOUR_CAPABILITIES & COLOUR_CAPABILITY_COLOUR_TEMPERATURE_SUPPORTED)
                     DBG_vPrintf(TRACE_LIGHT_TASK, "T %dK ",
-                                         1000000 / sLight.sColourControlServerCluster.u16ColourTemperatureMired);
+                                         1000000 / sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16ColourTemperatureMired);
 #endif
                     DBG_vPrintf(TRACE_LIGHT_TASK, "M %d On %d OnTime %d OffTime %d",
-                                        sLight.sColourControlServerCluster.u8ColourMode,
-                                        sLight.sOnOffServerCluster.bOnOff,
-                                        sLight.sOnOffServerCluster.u16OnTime,
-                                        sLight.sOnOffServerCluster.u16OffWaitTime);
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u8ColourMode,
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.u16OnTime,
+                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.u16OffWaitTime);
 #endif
-                    vRGBLight_SetLevels(sLight.sOnOffServerCluster.bOnOff,
-                        sLight.sLevelControlServerCluster.u8CurrentLevel,
+                    vRGBLight_SetLevels(LIGHT_INDEX(psEvent->u8EndPoint), sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel,
                         u8Red,
                         u8Green,
                         u8Blue);
 
                 #elif (defined CLD_COLOUR_CONTROL) && ((defined DR1221) || (defined DR1221_Dimic))
                     /* controllable colour temperature tunable white (CCT TW) bulbs */
-                    DBG_vPrintf(TRACE_LIGHT_TASK,"\nCU:On %d, L:%d  T:%dK",sLight.sOnOffServerCluster.bOnOff,
-                                                                        sLight.sLevelControlServerCluster.u8CurrentLevel,
-                                                                        (1000000 / sLight.sColourControlServerCluster.u16ColourTemperatureMired));
+                    DBG_vPrintf(TRACE_LIGHT_TASK,"\nCU:On %d, L:%d  T:%dK",sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                                                                        sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel,
+                                                                        (1000000 / sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16ColourTemperatureMired));
 
-                    vTunableWhiteLightSetLevels(sLight.sOnOffServerCluster.bOnOff,
-                                                sLight.sLevelControlServerCluster.u8CurrentLevel,
-                                                   sLight.sColourControlServerCluster.u16ColourTemperatureMired);
+                    vTunableWhiteLightSetLevels(sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff,
+                                                sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel,
+                                                   sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sColourControlServerCluster.u16ColourTemperatureMired);
 
                 #elif ( defined MONO_WITH_LEVEL)
                     /*
                      * Monochrome bulb with level control
                      */
-                    vSetBulbState(sLight.sOnOffServerCluster.bOnOff, sLight.sLevelControlServerCluster.u8CurrentLevel);
+                    vSetBulbState(sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff, sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sLevelControlServerCluster.u8CurrentLevel);
 
                 #elif (defined MONO_ON_OFF)
                     /*
                      * mono on off bulb
                      */
                     DBG_vPrintf(TRACE_PATH, "\nJP on_off only bulb");
-                    vSetBulbState( sLight.sOnOffServerCluster.bOnOff);
+                    vSetBulbState( sLight[LIGHT_INDEX(psEvent->u8EndPoint)].sOnOffServerCluster.bOnOff);
                 #endif
             }
         }
@@ -649,6 +664,7 @@ PRIVATE void APP_ZCL_cbEndpointCallback(tsZCL_CallBackEvent *psEvent)
     {
         if (psEvent->uMessage.sClusterCustomMessage.u16ClusterId == ZLL_CLUSTER_ID_COMMISSIONING)
         {
+            DBG_vPrintf(TRACE_ZCL, "\nEP EVT: ZLL Commissioning");
             APP_ZCL_cbZllCommissionCallback(psEvent);
         }
     }
@@ -675,6 +691,15 @@ PRIVATE void APP_ZCL_cbZllCommissionCallback(tsZCL_CallBackEvent *psEvent)
     memcpy(&sEvent.sZllMessage.uPayload,
             (((tsCLD_ZllCommissionCustomDataStructure*)psEvent->psClusterInstance->pvEndPointCustomStructPtr)->sCallBackMessage.uMessage.psScanRspPayload),
             sizeof(tsZllPayloads));
+
+
+    DBG_vPrintf(TRACE_ZCL, "\nZLL Commissioning LQi %u, cmd %d, src %04x-%016x",
+    		sEvent.u8Lqi,
+    		sEvent.sZllMessage.eCommand,
+    		sEvent.sZllMessage.sSrcAddr.eMode,
+    		sEvent.sZllMessage.sSrcAddr.u16PanId,
+    		sEvent.sZllMessage.sSrcAddr.uAddress.u16Addr,
+    		sEvent.sZllMessage.sSrcAddr.uAddress.u64Addr);
 
     OS_ePostMessage(APP_CommissionEvents, &sEvent);
 }

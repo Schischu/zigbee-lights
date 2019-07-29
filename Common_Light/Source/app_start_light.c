@@ -61,7 +61,7 @@
 #include "zcl_options.h"
 
 #include "app_common.h"
-#include "app_light_interpolation.h"
+//#include "app_light_interpolation.h"
 
 #include "DriverBulb_Shim.h"
 
@@ -195,7 +195,7 @@ PUBLIC void vAppMain(void)
 
     /* Early call to Bulb initialisation to enable fast start up    */
 
-    vBULB_Init();
+    vBULB_Init(0);
 
     /* Bulb is now on 100% white (RGB or Mono) so ensure the LI     */
     /*  module's values are consistent with this initial state      */

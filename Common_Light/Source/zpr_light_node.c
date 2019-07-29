@@ -69,7 +69,7 @@
 
 #include "PDM_IDs.h"
 #include "zcl_options.h"
-#include "app_scenes.h"
+//#include "app_scenes.h"
 
 #ifdef CLD_OTA
     #include "OTA.h"
@@ -87,7 +87,7 @@
 
 #include "zcl.h"
 
-#include "app_manage_temperature.h"
+//#include "app_manage_temperature.h"
 
 #ifndef DEBUG_APP
 #define TRACE_APP   FALSE
@@ -335,7 +335,7 @@ PUBLIC void APP_vInitialiseNode(void) {
     vLoadOTAPersistedData();
 #endif
 
-    vLoadScenesNVM();
+    //vLoadScenesNVM();
 
 
 
@@ -408,7 +408,7 @@ PUBLIC void APP_vInitialiseNode(void) {
 
     /* Start up temperature management behaviour */
     OS_eStartSWTimer(APP_RadioRecalTimer, APP_TIME_MS(10000), NULL);
-    APP_vManageTemperatureInit();
+    //APP_vManageTemperatureInit();
     vManagePowerOnCountInit();
 
 #ifndef CLD_COLOUR_CONTROL
@@ -526,6 +526,7 @@ OS_TASK(APP_ZPR_Light_Task)
     APP_DiscoveryEvent sDiscoveryEvent;
     PDUM_thAPduInstance hAPduInst;
     APP_tsEvent sAppPorEvent = {0};
+    uint8 u8Index = 0;
 
     sStackEvent.eType = ZPS_EVENT_NONE;
     sAppEvent.eType = APP_E_EVENT_NONE;
@@ -677,8 +678,11 @@ OS_TASK(APP_ZPR_Light_Task)
             PDM_eSaveRecordData(PDM_ID_APP_ZLL_ROUTER,&sZllState,sizeof(tsZllState));
             DBG_vPrintf(TRACE_CLASSIC, "NWK_JOINED_AS_ROUTER (CLASSIC)\n");
             /* identify to signal the join */
-            APP_ZCL_vSetIdentifyTime( 10);
-            APP_vHandleIdentify( 10);
+            for (u8Index = 0; u8Index < ZLL_NUMBER_DEVICES; u8Index++)
+            {
+				APP_ZCL_vSetIdentifyTime(u8Index, 10);
+				APP_vHandleIdentify(u8Index, 10);
+            }
         }
         break;
 
@@ -902,7 +906,7 @@ PUBLIC void vResetDataStructures(void) {
 
     vSetKeys();
 
-    vRemoveAllGroupsAndScenes();
+    //vRemoveAllGroupsAndScenes();
     /* set the aps use pan id */
     ZPS_eAplAibSetApsUseExtendedPanId( 0 );
     ZPS_eAplAibSetApsTrustCenterAddress( 0 );

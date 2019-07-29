@@ -47,6 +47,12 @@
 #endif
 
 #define ADC_FULL_SCALE   1023
+
+#ifndef BULBS_COUNT
+#define BULBS_COUNT 1u
+#error BULBS_COUNT
+#endif
+
 /****************************************************************************/
 /***        Type Definitions                                              ***/
 /****************************************************************************/
@@ -66,7 +72,7 @@
 /****************************************************************************/
 /***        Local Variables                                               ***/
 /****************************************************************************/
-PRIVATE bool_t bBulbOn = FALSE;
+PRIVATE bool_t bBulbOn[BULBS_COUNT] = {0};
 #ifdef CCT
 PRIVATE	uint32 au32Mireds2RGB[17][4] =
 {
@@ -94,70 +100,79 @@ PRIVATE	uint32 au32Mireds2RGB[17][4] =
 /***        Exported Functions                                            ***/
 /****************************************************************************/
 
-PUBLIC void DriverBulb_vInit(void)
+PUBLIC void DriverBulb_vInit(uint8 u8index)
 {
-	static bool_t bFirstCalled = TRUE;
+	static bool_t bFirstCalled_init[BULBS_COUNT] = {0};
+	static bool_t bFirstCalled[BULBS_COUNT] = {0};
 
-	if (bFirstCalled)
+	if (bFirstCalled_init[u8index] == FALSE)
 	{
-		bFirstCalled = FALSE;
+		bFirstCalled[u8index] = TRUE;
+		bFirstCalled_init[u8index] = TRUE;
+	}
+
+    DBG_vPrintf(TRUE, "\n#%d,I:%d", u8index, bFirstCalled[u8index]);
+
+	if (bFirstCalled[u8index])
+	{
+		bFirstCalled[u8index] = FALSE;
 	}
 }
 
-PUBLIC void DriverBulb_vOn(void)
+PUBLIC void DriverBulb_vOn(uint8 u8index)
 {
-	DriverBulb_vSetOnOff(TRUE);
+	DriverBulb_vSetOnOff(u8index, TRUE);
 }
 
-PUBLIC void DriverBulb_vOff(void)
+PUBLIC void DriverBulb_vOff(uint8 u8index)
 {
-	DriverBulb_vSetOnOff(FALSE);
+	DriverBulb_vSetOnOff(u8index, FALSE);
 }
 
-PUBLIC void DriverBulb_vSetOnOff(bool_t bOn)
+PUBLIC void DriverBulb_vSetOnOff(uint8 u8index, bool_t bOn)
 {
-     bBulbOn =  bOn;
-     DBG_vPrintf(TRACE_DRIVER, "\nS:%s",(bOn ? "ON" : "OFF"));
+     bBulbOn[u8index] =  bOn;
+     DBG_vPrintf(TRUE, "\n#%d,S:%d", u8index, bOn);
 }
 
-PUBLIC void DriverBulb_vSetLevel(uint32 u32Level)
+PUBLIC void DriverBulb_vSetLevel(uint8 u8index, uint32 u32Level)
 {
-	DBG_vPrintf(TRACE_DRIVER, "\nL:%d",u32Level);
+	DBG_vPrintf(TRUE, "\n#%d,L:%d", u8index, u32Level);
 }
 
-PUBLIC void DriverBulb_vSetColour(uint32 u32Red, uint32 u32Green, uint32 u32Blue)
+PUBLIC void DriverBulb_vSetColour(uint8 u8index, uint32 u32Red, uint32 u32Green, uint32 u32Blue)
 {
-	DBG_vPrintf(TRACE_DRIVER, "\nC:%d %d %d",u32Red,u32Green,u32Blue);
+	DBG_vPrintf(TRUE, "\n#%d,C:%d %d %d", u8index, u32Red,u32Green,u32Blue);
 }
 
-PUBLIC bool_t DriverBulb_bOn(void)
+PUBLIC bool_t DriverBulb_bOn(uint8 u8index)
 {
-	return (bBulbOn);
+	return (bBulbOn[u8index]);
 }
 
-PUBLIC bool_t DriverBulb_bReady(void)
+PUBLIC bool_t DriverBulb_bReady(uint8 u8index)
 {
 	return (TRUE);
 }
 
-PUBLIC bool_t DriverBulb_bFailed(void)
+PUBLIC bool_t DriverBulb_bFailed(uint8 u8index)
 {
 	return (FALSE);
 }
 
-PUBLIC void DriverBulb_vTick(void)
+PUBLIC void DriverBulb_vTick(uint8 u8index)
 {
 /* No timing behaviour needed in DR1175 */
 }
 
-PUBLIC int16 DriverBulb_i16Analogue(uint8 u8Adc, uint16 u16AdcRead)
+PUBLIC int16 DriverBulb_i16Analogue(uint8 u8index, uint8 u8Adc, uint16 u16AdcRead)
 {
 	return(ADC_FULL_SCALE);
 }
 
 /* This function replicates the 'real bulb' set colour temperature function called */
 /* on DR1221 drivers and allows the DR1175 to look like a CCT=TW bulb */
-PUBLIC void DriverBulb_vSetTunableWhiteColourTemperature(int32 i32ColourTemperature)
+PUBLIC void DriverBulb_vSetTunableWhiteColourTemperature(uint8 u8index, int32 i32ColourTemperature)
 {
 #ifdef CCT
 	uint16 u16Mireds;

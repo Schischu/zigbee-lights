@@ -50,11 +50,11 @@ extern "C" {
 
 /* Interface functions */
 
-PUBLIC void vBULB_Init(void);
-PUBLIC void vBULB_SetOnOff(bool_t bOn);
-PUBLIC void vBULB_SetLevel(uint32 u32Level);
-PUBLIC void vBULB_SetColour(uint32 u32Red, uint32 u32Green, uint32 u32Blue);
-PUBLIC void vBULB_SetColourTemperature(uint32 u32ColTemp);
+PUBLIC void vBULB_Init(uint8 u8index);
+PUBLIC void vBULB_SetOnOff(uint8 u8index, bool_t bOn);
+PUBLIC void vBULB_SetLevel(uint8 u8index, uint32 u32Level);
+PUBLIC void vBULB_SetColour(uint8 u8index, uint32 u32Red, uint32 u32Green, uint32 u32Blue);
+PUBLIC void vBULB_SetColourTemperature(uint8 u8index, uint32 u32ColTemp);
 
 /****************************************************************************/
 /***        Exported Variables                                            ***/

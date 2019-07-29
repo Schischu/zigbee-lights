@@ -37,6 +37,7 @@ TARGET = $(LIGHT)
 PDM_BUILD_TYPE ?=_EEPROM
 #PDM_BUILD_TYPE ?= _EXTERNAL_FLASH
 
+#CFLAGS += -std=c99
 
 ###############################################################################
 #User definable make parameters that may be overwritten from the command line
@@ -51,6 +52,11 @@ JENNIC_SDK ?= JN-SW-4168
 ###############################################################################
 # Default meshbee target hardware
 DR ?= DR1175
+NUMBER_BULBS ?= 2
+CFLAGS  += -DBULBS_COUNT=$(NUMBER_BULBS)
+
+CFLAGS += -DMONO_ON_OFF
+
 ifeq ($(DR), DR1175)
 JENNIC_PCB ?= DEVKIT4
 CFLAGS  += -DBUTTON_MAP_DR1175
@@ -190,15 +196,18 @@ endif
 ###############################################################################
 
 #CFLAGS += -DNXP_HARDWARE
-CFLAGS += -DDEBUG_ZCL
-CFLAGS += -DDEBUG_APP
-CFLAGS += -DDEBUG_START_UP
-CFLAGS += -DDEBUG_LIGHT_NODE
-CFLAGS += -DDEBUG_LIGHT_TASK
-CFLAGS += -DDEBUG_JOIN
-CFLAGS += -DDEBUG_COMMISSION
-CFLAGS += -DDEBUG_CLASSIC_JOIN
-CFLAGS +=  -DDEBUG_EXCEPTIONS
+#CFLAGS += -DDEBUG_DRIVER
+#CFLAGS += -DDEBUG_ZCL
+#CFLAGS += -DDEBUG_APP
+#CFLAGS += -DDEBUG_START_UP
+#CFLAGS += -DDEBUG_LIGHT_NODE
+#CFLAGS += -DDEBUG_LIGHT_TASK
+#TRACE_COMMISSION shows discovery
+#CFLAGS += -DDEBUG_JOIN
+#TRACE_COMMISSION shows discovery
+#CFLAGS += -DDEBUG_COMMISSION
+#CFLAGS += -DDEBUG_CLASSIC_JOIN
+#CFLAGS +=  -DDEBUG_EXCEPTIONS
 #CFLAGS += -DDEBUG_TEMPERATURE
 
 #CFLAGS += -DDEBUG_CLD_IDENTIFY 
@@ -247,7 +256,7 @@ APPSRC += pdum_apdu.S
 APPSRC += zps_gen.c
 APPSRC += app_timer_driver.c
 APPSRC += app_start_light.c
-APPSRC += app_scenes.c
+//APPSRC += app_scenes.c
 APPSRC += app_power_on_counter.c
 
 APPSRC += zpr_light_node.c
@@ -255,7 +264,7 @@ APPSRC += ecb_decrypt.c
 
 APPSRC += app_zcl_light_task.c
 APPSRC += app_light_commission_task.c
-APPSRC += app_manage_temperature.c
+APPSRC += app_manage_temperature_stubs.c
 ifeq ($(OTA),1)
 APPSRC += app_ota_client.c
 endif

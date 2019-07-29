@@ -29,6 +29,8 @@
 
 /* SDK includes */
 #include <jendefs.h>
+#include "dbg.h"
+#include "dbg_uart.h"
 
 
 /* Device includes */
@@ -70,34 +72,34 @@
  * DESCRIPTION:		Shim functions to provide generic interface to upper layer
  *
  ****************************************************************************/
-PUBLIC void vBULB_Init(void)
+PUBLIC void vBULB_Init(uint8 u8index)
 {
-	DriverBulb_vInit();
+	DriverBulb_vInit(u8index);
 }
 
-PUBLIC void vBULB_SetOnOff(bool_t bOn)
+PUBLIC void vBULB_SetOnOff(uint8 u8index, bool_t bOn)
 {
-	DriverBulb_vSetOnOff(bOn);
+	DriverBulb_vSetOnOff(u8index, bOn);
 }
 
-PUBLIC void vBULB_SetLevel(uint32 u32Level)
+PUBLIC void vBULB_SetLevel(uint8 u8index, uint32 u32Level)
 {
-	DriverBulb_vSetLevel(u32Level);
+	DriverBulb_vSetLevel(u8index, u32Level);
 }
 
-PUBLIC void vBULB_SetColour(uint32 u32Red, uint32 u32Green, uint32 u32Blue)
+PUBLIC void vBULB_SetColour(uint8 u8index, uint32 u32Red, uint32 u32Green, uint32 u32Blue)
 {
 	if (DriverBulb_vSetColour)
 	{
-		DriverBulb_vSetColour(u32Red, u32Green, u32Blue);
+		DriverBulb_vSetColour(u8index, u32Red, u32Green, u32Blue);
 	}
 }
 
-PUBLIC void vBULB_SetColourTemperature(uint32 u32ColTemp)
+PUBLIC void vBULB_SetColourTemperature(uint8 u8index, uint32 u32ColTemp)
 {
 	if (DriverBulb_vSetTunableWhiteColourTemperature)
 	{
-		DriverBulb_vSetTunableWhiteColourTemperature(u32ColTemp);
+		DriverBulb_vSetTunableWhiteColourTemperature(u8index, u32ColTemp);
 	}
 }
 /****************************************************************************/

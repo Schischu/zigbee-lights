@@ -38,6 +38,8 @@
 /***        Include files                                                 ***/
 /****************************************************************************/
 #include <jendefs.h>
+#include "dbg.h"
+#include "dbg_uart.h"
 #include "app_light_interpolation.h"
 #include "DriverBulb_Shim.h"
 
@@ -46,6 +48,10 @@
 /****************************************************************************/
 #define INTPOINTS	(10)
 #define SCALE 		(7)
+
+#ifndef BULBS_COUNT
+#define BULBS_COUNT 1u
+#endif
 
 /****************************************************************************/
 /***        Type Definitions                                              ***/
@@ -100,7 +106,7 @@ PRIVATE tsLI_Vars sLI_Vars = {.sLevel.i32Delta   = 0,
  * DESCRIPTION:
  * Sets the current interpolation values
  ****************************************************************************/
-PUBLIC void vLI_SetCurrentValues(uint32 u32Level, uint32 u32Red, uint32 u32Green, uint32 u32Blue, uint32 u32ColTemp)
+PUBLIC void vLI_SetCurrentValues(uint8 u8index, uint32 u32Level, uint32 u32Red, uint32 u32Green, uint32 u32Blue, uint32 u32ColTemp)
 {
 	sLI_Vars.sLevel.u32Current   += u32Level   << SCALE;
 	sLI_Vars.sRed.u32Current     += u32Red     << SCALE;
@@ -116,18 +122,18 @@ PUBLIC void vLI_SetCurrentValues(uint32 u32Level, uint32 u32Red, uint32 u32Green
  * DESCRIPTION:
  * Starts the linear interpolation process between successive ZCL updates
  ****************************************************************************/
-PUBLIC void vLI_Start(uint32 u32Level, uint32 u32Red, uint32 u32Green, uint32 u32Blue, uint32 u32ColTemp)
+PUBLIC void vLI_Start(uint8 u8index, uint32 u32Level, uint32 u32Red, uint32 u32Green, uint32 u32Blue, uint32 u32ColTemp)
 {
 	vLI_InitVar(&sLI_Vars.sLevel,    u32Level);
 	vLI_InitVar(&sLI_Vars.sRed,      u32Red);
 	vLI_InitVar(&sLI_Vars.sGreen,    u32Green);
     vLI_InitVar(&sLI_Vars.sBlue,     u32Blue);
     vLI_InitVar(&sLI_Vars.sColTemp,  u32ColTemp);
-    vLI_UpdateDriver();
+    vLI_UpdateDriver(u8index);
     sLI_Vars.u32PointsAdded  = 1;
 }
 
-PUBLIC void vLI_Stop(void)
+PUBLIC void vLI_Stop(uint8 u8index)
 {
     sLI_Vars.u32PointsAdded = INTPOINTS;
 }
@@ -140,7 +146,7 @@ PUBLIC void vLI_Stop(void)
  * successive  ZCL updates.  This provides smooth 100Hz updates
  * on colour and level transitions
  ****************************************************************************/
-PUBLIC void vLI_CreatePoints(void)
+PUBLIC void vLI_CreatePoints(uint8 u8index)
 {
     if (sLI_Vars.u32PointsAdded < INTPOINTS)
     {
@@ -150,7 +156,7 @@ PUBLIC void vLI_CreatePoints(void)
         sLI_Vars.sGreen.u32Current   += sLI_Vars.sGreen.i32Delta;
         sLI_Vars.sBlue.u32Current    += sLI_Vars.sBlue.i32Delta;
         sLI_Vars.sColTemp.u32Current += sLI_Vars.sColTemp.i32Delta;
-        vLI_UpdateDriver();
+        vLI_UpdateDriver(u8index);
     }
 }
 
@@ -161,15 +167,17 @@ PUBLIC void vLI_CreatePoints(void)
  *			passes the LI points between previous and current
  *			ZCL updates to the colour driver for smooth transitions
  ****************************************************************************/
-PUBLIC void vLI_UpdateDriver(void)
+PUBLIC void vLI_UpdateDriver(uint8 u8index)
 {
-	 vBULB_SetColour(sLI_Vars.sRed.u32Current   >> SCALE,
+     DBG_vPrintf(TRUE, "%s\n", __func__);
+
+	 vBULB_SetColour(u8index, sLI_Vars.sRed.u32Current   >> SCALE,
 			         sLI_Vars.sGreen.u32Current >> SCALE,
 			         sLI_Vars.sBlue.u32Current  >> SCALE);
 
-	 vBULB_SetLevel(sLI_Vars.sLevel.u32Current  >> SCALE);
+	 vBULB_SetLevel(u8index, sLI_Vars.sLevel.u32Current  >> SCALE);
 
-	 vBULB_SetColourTemperature(sLI_Vars.sColTemp.u32Current >> SCALE);
+	 vBULB_SetColourTemperature(u8index, sLI_Vars.sColTemp.u32Current >> SCALE);
 }
 
 /****************************************************************************/

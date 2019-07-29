@@ -75,8 +75,10 @@
 #include "app_power_on_counter.h"
 #include "app_light_commission_task.h"
 
-#define ADJUST_POWER        TRUE
-#define ZLL_SCAN_LQI_MIN    (100)
+//#define ADJUST_POWER        TRUE
+#define ADJUST_POWER        FALSE
+//#define ZLL_SCAN_LQI_MIN    (100)
+#define ZLL_SCAN_LQI_MIN    (70)
 
 #ifndef DEBUG_JOIN
 #define TRACE_JOIN            FALSE
@@ -197,6 +199,7 @@ OS_TASK(APP_Commission_Task) {
 
     uint8 u8Seq;
     ZPS_tsNwkNib *psNib;
+	uint8 u8Index = 0;
 
     if (OS_eCollectMessage(APP_CommissionEvents, &sEvent) != OS_E_OK)
     {
@@ -235,7 +238,7 @@ OS_TASK(APP_Commission_Task) {
                 {
                     if (sEvent.u8Lqi > ZLL_SCAN_LQI_MIN)
                     {
-                        DBG_vPrintf(TRACE_COMMISSION, "\nScan Req LQI %d\n", sEvent.u8Lqi);
+                        DBG_vPrintf(TRACE_COMMISSION, "\nCommission - MSG Scan Req LQI %d\n", sEvent.u8Lqi);
                         /* Turn down Tx power */
 #if ADJUST_POWER
                         //phy_ePibSet(ZPS_pvAplZdoGetMacHandle(), PHY_PIB_ATTR_TX_POWER, TX_POWER_LOW);
@@ -255,6 +258,7 @@ OS_TASK(APP_Commission_Task) {
                         }
 
                         sDstAddr = sEvent.sZllMessage.sSrcAddr;
+
                         DBG_vPrintf(TRACE_JOIN, "Back to %016llx Mode %d\n", sDstAddr.uAddress.u64Addr, sDstAddr.eMode);
                         sDstAddr.u16PanId = 0xffff;
                         u32TransactionId = sEvent.sZllMessage.uPayload.sScanReqPayload.u32TransactionId;
@@ -268,9 +272,13 @@ OS_TASK(APP_Commission_Task) {
                     else
                     {
                         /* LQI too low */
-                        DBG_vPrintf(TRACE_COMMISSION, "\nDrop Scan LQI %d\n", sEvent.u8Lqi);
+                        DBG_vPrintf(TRACE_COMMISSION, "\nCommission Failed - MSG Scan Req Drop LQI %d\n", sEvent.u8Lqi);
                     }
                 } // end scan req
+                else
+                {
+                	DBG_vPrintf(TRACE_COMMISSION, "\nCommission Ignored - Idle %d\n", sEvent.sZllMessage.eCommand);
+                }
             }
             break;
 
@@ -278,7 +286,7 @@ OS_TASK(APP_Commission_Task) {
             switch (sEvent.eType)
             {
                 case APP_E_COMMISSION_TIMER_EXPIRED:
-                    DBG_vPrintf(TRACE_COMMISSION, "Inter Pan Timed Out\n");
+                    DBG_vPrintf(TRACE_COMMISSION, "\nCommission Failed - Inter Pan Timed Out\n");
                     eState = E_IDLE;
                     u32TransactionId = 0;
                     u32ResponseId = 0;
@@ -293,7 +301,10 @@ OS_TASK(APP_Commission_Task) {
                 case APP_E_COMMISSION_MSG:
                     sDstAddr = sEvent.sZllMessage.sSrcAddr;
                     sDstAddr.u16PanId = 0xFFFF;
-                    DBG_vPrintf(TRACE_JOIN, "IP cmd 0x%02x\n", sEvent.sZllMessage.eCommand);
+                    DBG_vPrintf(TRACE_JOIN, "\nCommission - MSG cmd 0x%02x x0%lx\n",
+                    		sEvent.sZllMessage.eCommand,
+                    		sEvent.sZllMessage.uPayload.sScanReqPayload.u32TransactionId);
+
                     if (sEvent.sZllMessage.uPayload.sScanReqPayload.u32TransactionId == u32TransactionId)
                     {
                         switch (sEvent.sZllMessage.eCommand)
@@ -303,6 +314,7 @@ OS_TASK(APP_Commission_Task) {
                              * Spoke to Philips and they say " Yup anyone can reset and bring nodes to factory settings"
                              */
                             case E_CLD_COMMISSION_CMD_FACTORY_RESET_REQ:
+                                DBG_vPrintf(TRACE_COMMISSION, "\nCommission - MSG Factory Reset\n");
                                 if (sZllState.eState == NOT_FACTORY_NEW)
                                 {
                                     eState = E_WAIT_LEAVE_RESET;
@@ -314,7 +326,8 @@ OS_TASK(APP_Commission_Task) {
                                 break;
 
                             case E_CLD_COMMISSION_CMD_NETWORK_UPDATE_REQ:
-                                DBG_vPrintf(TRACE_COMMISSION, "Got nwk up req\n");
+                                DBG_vPrintf(TRACE_COMMISSION, "\nCommission - MSG Network Update\n");
+                                //DBG_vPrintf(TRACE_COMMISSION, "Got nwk up req\n");
                                 if ((sEvent.sZllMessage.uPayload.sNwkUpdateReqPayload.u64ExtPanId == ZPS_psAplAibGetAib()->u64ApsUseExtendedPanid)
                                         && (sEvent.sZllMessage.uPayload.sNwkUpdateReqPayload.u16PanId == psNib->sPersist.u16VsPanId)
                                         && (psNib->sPersist.u8UpdateId != u8NewUpdateID( psNib->sPersist.u8UpdateId,
@@ -333,6 +346,7 @@ OS_TASK(APP_Commission_Task) {
                                 break;
 
                             case E_CLD_COMMISSION_CMD_IDENTIFY_REQ:
+                                DBG_vPrintf(TRACE_COMMISSION, "\nCommission - MSG Identify\n");
                                 if (sEvent.sZllMessage.uPayload.sIdentifyReqPayload.u16Duration == 0xFFFF)
                                 {
                                     DBG_vPrintf(TRACE_COMMISSION, "Default Id time\n");
@@ -340,12 +354,15 @@ OS_TASK(APP_Commission_Task) {
                                 }
 
                                 /** Identfiy time goes at 1Hz **/
-                                APP_ZCL_vSetIdentifyTime( sEvent.sZllMessage.uPayload.sIdentifyReqPayload.u16Duration);
-                                APP_vHandleIdentify(  sEvent.sZllMessage.uPayload.sIdentifyReqPayload.u16Duration);
+                                for (u8Index = 0; u8Index < ZLL_NUMBER_DEVICES; u8Index++)
+                                {
+									APP_ZCL_vSetIdentifyTime(u8Index, sEvent.sZllMessage.uPayload.sIdentifyReqPayload.u16Duration);
+									APP_vHandleIdentify(u8Index, sEvent.sZllMessage.uPayload.sIdentifyReqPayload.u16Duration);
+                                }
                                 break;
 
                             case E_CLD_COMMISSION_CMD_DEVICE_INFO_REQ:
-                                DBG_vPrintf(TRACE_JOIN, "Device Info request\n");
+                                DBG_vPrintf(TRACE_JOIN, "\nCommission - MSG Device Info\n");
                                 memset( &sZllCommand.uPayload.sDeviceInfoRspPayload,
                                         0,
                                         sizeof(tsCLD_ZllCommission_DeviceInfoRspCommandPayload));
@@ -371,6 +388,7 @@ OS_TASK(APP_Commission_Task) {
                                 break;
 
                             case E_CLD_COMMISSION_CMD_NETWORK_JOIN_END_DEVICE_REQ:
+                                DBG_vPrintf(TRACE_JOIN, "\nCommission - MSG Network Join End Device\n");
                                 /* we are a ZR send error */
                                 memset(&sZllCommand.uPayload.sNwkJoinEndDeviceRspPayload,
                                         0,
@@ -385,7 +403,7 @@ OS_TASK(APP_Commission_Task) {
                                 break;
 
                             case E_CLD_COMMISSION_CMD_NETWORK_START_REQ:
-                                DBG_vPrintf(TRACE_COMMISSION, "start request\n");
+                                DBG_vPrintf(TRACE_JOIN, "\nCommission - MSG Network Start\n");
 
                                 sStartParams.u64ExtPanId = sEvent.sZllMessage.uPayload.sNwkStartReqPayload.u64ExtPanId;
                                 sStartParams.u8KeyIndex = sEvent.sZllMessage.uPayload.sNwkStartReqPayload.u8KeyIndex;
@@ -398,7 +416,6 @@ OS_TASK(APP_Commission_Task) {
                                 sStartParams.u16FreeGroupIdEnd = sEvent.sZllMessage.uPayload.sNwkStartReqPayload.u16FreeGroupIdEnd;
                                 sStartParams.u16FreeNwkAddrBegin = sEvent.sZllMessage.uPayload.sNwkStartReqPayload.u16FreeNwkAddrBegin;
                                 sStartParams.u16FreeNwkAddrEnd  = sEvent.sZllMessage.uPayload.sNwkStartReqPayload.u16FreeNwkAddrEnd;
-                                sStartParams.u64InitiatorIEEEAddr = sEvent.sZllMessage.uPayload.sNwkStartReqPayload.u64InitiatorIEEEAddr;
                                 sStartParams.u16InitiatorNwkAddr = sEvent.sZllMessage.uPayload.sNwkStartReqPayload.u16InitiatorNwkAddr;
                                 sStartParams.u8NwkupdateId = 0;
                                 memcpy( sStartParams.au8NwkKey,
@@ -439,7 +456,7 @@ OS_TASK(APP_Commission_Task) {
                                 break;
 
                             case E_CLD_COMMISSION_CMD_NETWORK_JOIN_ROUTER_REQ:
-                                DBG_vPrintf(TRACE_JOIN, "Active join router req\n");
+                                DBG_vPrintf(TRACE_JOIN, "\nCommission - MSG Network Join Router\n");
                                 sZllCommand.uPayload.sNwkJoinRouterRspPayload.u32TransactionId = u32TransactionId;
                                 sZllCommand.uPayload.sNwkJoinRouterRspPayload.u8Status  = ZLL_SUCCESS;
                                 if ( (sEvent.sZllMessage.uPayload.sNwkJoinRouterReqPayload.u64ExtPanId == 0) ||
@@ -504,8 +521,11 @@ OS_TASK(APP_Commission_Task) {
                                     OS_eStartSWTimer(APP_CommissionTimer, APP_TIME_MS(10), NULL);
                                 }
                                 break;
+                            case E_CLD_COMMISSION_CMD_SCAN_REQ:
+                            	DBG_vPrintf(TRACE_COMMISSION, "\nCommission - MSG Scan Request (Ignored Active)\n");
+                            	break;
                             default:
-                                DBG_vPrintf(TRACE_JOIN, "Active unhandled Cmd %02x\n", sEvent.sZllMessage.eCommand);
+                            	DBG_vPrintf(TRACE_COMMISSION, "\nCommission Ignored - Active %d\n", sEvent.sZllMessage.eCommand);
                                 break;
 
                         }
@@ -628,7 +648,7 @@ OS_TASK(APP_Commission_Task) {
                 psNib->sTbl.u32OutFC = u32OldFrameCtr;
                 DBG_vPrintf(TRACE_JOIN, "leave cfm outFC=%08x\n", psNib->sTbl.u32OutFC);
                 OS_eStopSWTimer(APP_CommissionTimer);
-                vRemoveAllGroupsAndScenes();
+                //vRemoveAllGroupsAndScenes();
                 vSetKeys();
                 OS_eStartSWTimer(APP_CommissionTimer, APP_TIME_MS(10), NULL);
                 bTLRequestLeave = FALSE;
@@ -642,7 +662,7 @@ OS_TASK(APP_Commission_Task) {
 
                 psNib->sTbl.u32OutFC = u32OldFrameCtr;
                 ZPS_vNwkSaveSecMat(ZPS_pvAplZdoGetNwkHandle());
-                vRemoveAllGroupsAndScenes();
+                //vRemoveAllGroupsAndScenes();
                 vResetDataStructures();
                 vAHI_SwReset();
             }

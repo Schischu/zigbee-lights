@@ -63,9 +63,13 @@ PUBLIC void vLoadScenesNVM(void);
 
 //#define ZLL_NO_APS_ACK
 
+#ifndef BULBS_COUNT
+#error BULBS_COUNT
+#endif
+
 /* Sets the number of endpoints that will be created by the ZCL library */
-#define ZLL_NUMBER_OF_ENDPOINTS                             2
-#define ZLL_NUMBER_DEVICES                                  1
+#define ZLL_NUMBER_OF_ENDPOINTS                             (1u + BULBS_COUNT)
+#define ZLL_NUMBER_DEVICES                                  BULBS_COUNT
 
 #define ZLL_MANUFACTURER_CODE                                0x1037
 
@@ -76,7 +80,7 @@ PUBLIC void vLoadScenesNVM(void);
 
 #define ZLL_NUMBER_OF_ZCL_APPLICATION_TIMERS                 3
 
-#define NUM_ENDPOINT_RECORDS         1
+#define NUM_ENDPOINT_RECORDS         BULBS_COUNT
 #define NUM_GROUP_RECORDS            4
 
 
@@ -111,6 +115,7 @@ PUBLIC void vLoadScenesNVM(void);
 #define CLD_LEVELCONTROL_MAX_LEVEL                          (0xfe)
 
 
+#if 0
 #define CLD_SCENES
 #define SCENES_SERVER
 #define CLD_SCENES_MAX_NUMBER_OF_SCENES                     9
@@ -118,7 +123,7 @@ PUBLIC void vLoadScenesNVM(void);
 #define CLD_SCENES_MAX_SCENE_NAME_LENGTH                    0
 #define CLD_SCENES_MAX_SCENE_STORAGE_BYTES                  22
 #define CLD_SCENES_ATTR_LAST_CONFIGURED_BY
-
+#endif
 
 #define CLD_COLOUR_CONTROL
 #define COLOUR_CONTROL_SERVER
@@ -185,10 +190,12 @@ PUBLIC void vLoadScenesNVM(void);
 
 #define CLD_IDENTIFY_SUPPORT_ZLL_ENHANCED_COMMANDS
 
+#if 0
 #define CLD_SCENES_SUPPORT_ZLL_ENHANCED_COMMANDS
 #define CLD_SCENES_SUPPORT_ZLL
 
 #define CLD_ONOFF_ATTR_GLOBAL_SCENE_CONTROL
+#endif
 #define CLD_ONOFF_ATTR_ON_TIME
 #define CLD_ONOFF_ATTR_OFF_WAIT_TIME
 #define CLD_ONOFF_SUPPORT_ZLL_ENHANCED_COMMANDS

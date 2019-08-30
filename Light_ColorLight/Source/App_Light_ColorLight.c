@@ -63,7 +63,7 @@
 #endif
 
 #define LIGHT_COLORLIGHT_LIGHT_ENDPOINT(endpoint) \
-	(LIGHT_COLORLIGHT_LIGHT_00_ENDPOINT + endpoint)
+    (LIGHT_COLORLIGHT_LIGHT_00_ENDPOINT + endpoint)
 
 /****************************************************************************/
 /***        Exported Variables                                            ***/
@@ -154,23 +154,23 @@ PRIVATE void vOverideProfileId(uint8 u8Index, uint16* pu16Profile, uint8 u8Ep);
 PUBLIC teZCL_Status eApp_ZLL_RegisterEndpoint(tfpZCL_ZCLCallBackFunction fptr,
                                        tsZLL_CommissionEndpoint* psCommissionEndpoint)
 {
-	uint8 u8Index = 0;
+    uint8 u8Index = 0;
 
-	ZPS_vAplZdoRegisterProfileCallback(vOverideProfileId);
-	zps_vSetIgnoreProfileCheck();
+    ZPS_vAplZdoRegisterProfileCallback(vOverideProfileId);
+    zps_vSetIgnoreProfileCheck();
 
-	eZLL_RegisterCommissionEndPoint(LIGHT_COLORLIGHT_COMMISSION_ENDPOINT,
+    eZLL_RegisterCommissionEndPoint(LIGHT_COLORLIGHT_COMMISSION_ENDPOINT,
                                     fptr,
                                     psCommissionEndpoint);
 
-	for (u8Index=0; u8Index < ZLL_NUMBER_DEVICES; u8Index++)
-	{
-		eZLL_RegisterColourLightEndPoint(LIGHT_COLORLIGHT_LIGHT_ENDPOINT(u8Index),
+    for (u8Index=0; u8Index < ZLL_NUMBER_DEVICES; u8Index++)
+    {
+        eZLL_RegisterColourLightEndPoint(LIGHT_COLORLIGHT_LIGHT_ENDPOINT(u8Index),
                                                 fptr,
                                                 &sLight[u8Index]);
-	}
+    }
 
-	return E_ZCL_SUCCESS;
+    return E_ZCL_SUCCESS;
 }
 
 
@@ -239,14 +239,14 @@ PUBLIC void vAPP_ZCL_DeviceSpecific_Init(uint8 u8Index)
 #if 0
     memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "Philips", CLD_BAS_MANUF_NAME_SIZE);
     memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "LCT015", CLD_BAS_MODEL_ID_SIZE);
-    memcpy(sLight[u8Index].sBasicServerCluster.au8DateCode, "20190101", CLD_BAS_DATE_SIZE);
     memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1.46.13_r26312", CLD_BAS_SW_BUILD_SIZE);
+    memcpy(sLight[u8Index].sBasicServerCluster.au8DateCode, "20190101", CLD_BAS_DATE_SIZE);
 #else
     memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "NXP", CLD_BAS_MANUF_NAME_SIZE);
     memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "ZLL-ColorLight 0", CLD_BAS_MODEL_ID_SIZE);
     sLight[u8Index].sBasicServerCluster.au8ModelIdentifier[15] = '0' + u8Index;
-    memcpy(sLight[u8Index].sBasicServerCluster.au8DateCode, "20150212", CLD_BAS_DATE_SIZE);
     memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1000-0003", CLD_BAS_SW_BUILD_SIZE);
+    memcpy(sLight[u8Index].sBasicServerCluster.au8DateCode, "20150212", CLD_BAS_DATE_SIZE);
 #endif
 
     sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_STOP_EFFECT;
@@ -273,7 +273,7 @@ PUBLIC void APP_vHandleIdentify(uint8 u8Index, uint16 u16Time) {
 
     if (sIdEffect[u8Index].u8Effect < E_CLD_IDENTIFY_EFFECT_STOP_EFFECT) {
         /* do nothing */
-        //DBG_vPrintf(TRACE_LIGHT_TASK, "Efect do nothing\n");
+        //DBG_vPrintf(TRACE_LIGHT_TASK, "Effect do nothing\n");
     }
     else if (u16Time == 0)
     {
@@ -293,7 +293,7 @@ PUBLIC void APP_vHandleIdentify(uint8 u8Index, uint16 u16Time) {
         //DBG_vPrintf(TRACE_LIGHT_TASK, "\nidentify stop");
 
         vRGBLight_SetLevels(u8Index,
-        					sLight[u8Index].sOnOffServerCluster.bOnOff,
+                            sLight[u8Index].sOnOffServerCluster.bOnOff,
                             sLight[u8Index].sLevelControlServerCluster.u8CurrentLevel,
                             u8Red,
                             u8Green,
@@ -377,22 +377,22 @@ PUBLIC void vIdEffectTick(uint8 u8Index, uint8 u8Endpoint) {
             sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_STOP_EFFECT;
             sIdEffect[u8Index].bDirection = FALSE;
             APP_ZCL_vSetIdentifyTime(u8Index, 0);
-                uint8 u8Red, u8Green, u8Blue;
-                vApp_eCLD_ColourControl_GetRGB(u8Index, &u8Red, &u8Green, &u8Blue);
-                DBG_vPrintf(TRACE_LIGHT_TASK, "EF - R %d G %d B %d L %d Hue %d Sat %d\n",
-                                    u8Red,
-                                    u8Green,
-                                    u8Blue,
-                                    sLight[u8Index].sLevelControlServerCluster.u8CurrentLevel,
-                                    sLight[u8Index].sColourControlServerCluster.u8CurrentHue,
-                                    sLight[u8Index].sColourControlServerCluster.u8CurrentSaturation);
+            uint8 u8Red, u8Green, u8Blue;
+            vApp_eCLD_ColourControl_GetRGB(u8Index, &u8Red, &u8Green, &u8Blue);
+            DBG_vPrintf(TRACE_LIGHT_TASK, "EF - R %d G %d B %d L %d Hue %d Sat %d\n",
+                                u8Red,
+                                u8Green,
+                                u8Blue,
+                                sLight[u8Index].sLevelControlServerCluster.u8CurrentLevel,
+                                sLight[u8Index].sColourControlServerCluster.u8CurrentHue,
+                                sLight[u8Index].sColourControlServerCluster.u8CurrentSaturation);
 
-                vRGBLight_SetLevels(u8Index,
-                					sLight[u8Index].sOnOffServerCluster.bOnOff,
-                                    sLight[u8Index].sLevelControlServerCluster.u8CurrentLevel,
-                                    u8Red,
-                                    u8Green,
-                                    u8Blue);
+            vRGBLight_SetLevels(u8Index,
+                                sLight[u8Index].sOnOffServerCluster.bOnOff,
+                                sLight[u8Index].sLevelControlServerCluster.u8CurrentLevel,
+                                u8Red,
+                                u8Green,
+                                u8Blue);
         }
     }
 }
@@ -484,10 +484,10 @@ PUBLIC void vRGBLight_SetLevels(uint8 u8Index, bool_t bOn, uint8 u8Level, uint8 
     if (bOn == TRUE)
     {
 #ifndef MONO_ON_OFF
-    	vLI_Start(u8Index, u8Level, u8Red, u8Green, u8Blue, 0);
+        vLI_Start(u8Index, u8Level, u8Red, u8Green, u8Blue, 0);
 #else
-		vBULB_SetLevel(u8Index, u8Level);
-		vBULB_SetColour(u8Index, u8Red, u8Green, u8Blue);
+        vBULB_SetLevel(u8Index, u8Level);
+        vBULB_SetColour(u8Index, u8Red, u8Green, u8Blue);
 #endif
     }
 #ifndef MONO_ON_OFF
@@ -508,12 +508,12 @@ PUBLIC void vRGBLight_SetLevels(uint8 u8Index, bool_t bOn, uint8 u8Level, uint8 
 
 OS_ISR(vISR_Timer3)
 {
-	(void) u8AHI_TimerFired(E_AHI_TIMER_3);
+    (void) u8AHI_TimerFired(E_AHI_TIMER_3);
 }
 
 OS_ISR(vISR_Timer4)
 {
-	(void) u8AHI_TimerFired(E_AHI_TIMER_4);
+    (void) u8AHI_TimerFired(E_AHI_TIMER_4);
 }
 
 #endif

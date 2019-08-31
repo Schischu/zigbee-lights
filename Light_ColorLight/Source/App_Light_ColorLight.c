@@ -45,6 +45,8 @@
 #include "dbg.h"
 #include <string.h>
 
+#include "version.h"
+
 #ifndef MONO_ON_OFF
 #include "app_light_interpolation.h"
 #endif
@@ -62,21 +64,23 @@
 #define TRACE_PATH  FALSE
 #endif
 
-#define LIGHT_COLORLIGHT_LIGHT_ENDPOINT(endpoint) \
+#define LIGHT_LIGHT_ENDPOINT(endpoint) \
     (LIGHT_COLORLIGHT_LIGHT_00_ENDPOINT + endpoint)
+
+#define LIGHT_COMMISSION_ENDPOINT LIGHT_COLORLIGHT_COMMISSION_ENDPOINT
 
 /****************************************************************************/
 /***        Exported Variables                                            ***/
 /****************************************************************************/
 
-tsZLL_ColourLightDevice sLight[ZLL_NUMBER_DEVICES];
+tsZLL_ColourLightDevice sLight[ZLL_NUMBER_DEVICES]; /*Dimmable Light is a subset of Colour Light and if CLD_COLOUR_CONTROL is not set its actually the same*/
 tsIdentifyColour sIdEffect[ZLL_NUMBER_DEVICES];
 tsCLD_ZllDeviceTable sDeviceTable = { ZLL_NUMBER_DEVICES,
                                       {
                                           { 0,
                                             ZLL_PROFILE_ID,
                                             COLOUR_LIGHT_DEVICE_ID,
-                                            LIGHT_COLORLIGHT_LIGHT_ENDPOINT(0),
+                                            LIGHT_LIGHT_ENDPOINT(0),
                                             2,
                                             0,
                                             0}
@@ -84,7 +88,7 @@ tsCLD_ZllDeviceTable sDeviceTable = { ZLL_NUMBER_DEVICES,
                                           ,{ 0,
                                             ZLL_PROFILE_ID,
                                             COLOUR_LIGHT_DEVICE_ID,
-                                            LIGHT_COLORLIGHT_LIGHT_ENDPOINT(1),
+                                            LIGHT_LIGHT_ENDPOINT(1),
                                             2,
                                             0,
                                             0}
@@ -92,7 +96,7 @@ tsCLD_ZllDeviceTable sDeviceTable = { ZLL_NUMBER_DEVICES,
                                           ,{ 0,
                                             ZLL_PROFILE_ID,
                                             COLOUR_LIGHT_DEVICE_ID,
-                                            LIGHT_COLORLIGHT_LIGHT_ENDPOINT(2),
+                                            LIGHT_LIGHT_ENDPOINT(2),
                                             2,
                                             0,
                                             0}
@@ -100,7 +104,7 @@ tsCLD_ZllDeviceTable sDeviceTable = { ZLL_NUMBER_DEVICES,
                                           ,{ 0,
                                             ZLL_PROFILE_ID,
                                             COLOUR_LIGHT_DEVICE_ID,
-                                            LIGHT_COLORLIGHT_LIGHT_ENDPOINT(3),
+                                            LIGHT_LIGHT_ENDPOINT(3),
                                             2,
                                             0,
                                             0}
@@ -159,15 +163,24 @@ PUBLIC teZCL_Status eApp_ZLL_RegisterEndpoint(tfpZCL_ZCLCallBackFunction fptr,
     ZPS_vAplZdoRegisterProfileCallback(vOverideProfileId);
     zps_vSetIgnoreProfileCheck();
 
-    eZLL_RegisterCommissionEndPoint(LIGHT_COLORLIGHT_COMMISSION_ENDPOINT,
+    eZLL_RegisterCommissionEndPoint(LIGHT_COMMISSION_ENDPOINT,
                                     fptr,
                                     psCommissionEndpoint);
 
     for (u8Index=0; u8Index < ZLL_NUMBER_DEVICES; u8Index++)
     {
-        eZLL_RegisterColourLightEndPoint(LIGHT_COLORLIGHT_LIGHT_ENDPOINT(u8Index),
+		if (sDeviceTable.asDeviceRecords[u8Index].u16DeviceId == COLOUR_LIGHT_DEVICE_ID)
+		{
+        	eZLL_RegisterColourLightEndPoint(LIGHT_LIGHT_ENDPOINT(u8Index),
                                                 fptr,
                                                 &sLight[u8Index]);
+		}
+		else
+		{
+        	eZLL_RegisterDimmableLightEndPoint(LIGHT_LIGHT_ENDPOINT(u8Index),
+                                                fptr,
+                                                &sLight[u8Index]);
+		}
     }
 
     return E_ZCL_SUCCESS;
@@ -190,7 +203,7 @@ PUBLIC teZCL_Status eApp_ZLL_RegisterEndpoint(tfpZCL_ZCLCallBackFunction fptr,
 ****************************************************************************/
 PRIVATE void vOverideProfileId(uint8 u8Index, uint16* pu16Profile, uint8 u8Ep)
 {
-    if (u8Ep == LIGHT_COLORLIGHT_LIGHT_ENDPOINT(u8Index))
+    if (u8Ep == LIGHT_LIGHT_ENDPOINT(u8Index))
     {
         *pu16Profile = 0x0104;
     }
@@ -215,7 +228,7 @@ PRIVATE void vOverideProfileId(uint8 u8Index, uint16* pu16Profile, uint8 u8Ep)
  ****************************************************************************/
 PUBLIC void vApp_eCLD_ColourControl_GetRGB(uint8 u8Index, uint8 *pu8Red,uint8 *pu8Green,uint8 *pu8Blue)
 {
-    eCLD_ColourControl_GetRGB(LIGHT_COLORLIGHT_LIGHT_ENDPOINT(u8Index),
+    eCLD_ColourControl_GetRGB(LIGHT_LIGHT_ENDPOINT(u8Index),
                               pu8Red,
                               pu8Green,
                               pu8Blue);
@@ -236,21 +249,46 @@ PUBLIC void vApp_eCLD_ColourControl_GetRGB(uint8 u8Index, uint8 *pu8Red,uint8 *p
 PUBLIC void vAPP_ZCL_DeviceSpecific_Init(uint8 u8Index)
 {
     /* Initialise the strings in Basic */
+	if (sDeviceTable.asDeviceRecords[u8Index].u16DeviceId == COLOUR_LIGHT_DEVICE_ID)
+	{
 #if 0
-    memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "Philips", CLD_BAS_MANUF_NAME_SIZE);
-    memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "LCT015", CLD_BAS_MODEL_ID_SIZE);
-    memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1.46.13_r26312", CLD_BAS_SW_BUILD_SIZE);
-    memcpy(sLight[u8Index].sBasicServerCluster.au8DateCode, "20190101", CLD_BAS_DATE_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "Philips", CLD_BAS_MANUF_NAME_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "LCT015", CLD_BAS_MODEL_ID_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1.46.13_r26312", CLD_BAS_SW_BUILD_SIZE);
 #else
-    memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "NXP", CLD_BAS_MANUF_NAME_SIZE);
-    memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "ZLL-ColorLight 0", CLD_BAS_MODEL_ID_SIZE);
-    sLight[u8Index].sBasicServerCluster.au8ModelIdentifier[15] = '0' + u8Index;
-    memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1000-0003", CLD_BAS_SW_BUILD_SIZE);
-    memcpy(sLight[u8Index].sBasicServerCluster.au8DateCode, "20150212", CLD_BAS_DATE_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "NXP", CLD_BAS_MANUF_NAME_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "ZLL-ColorLight 0", CLD_BAS_MODEL_ID_SIZE);
+	    sLight[u8Index].sBasicServerCluster.au8ModelIdentifier[15] = '0' + u8Index;
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1000-0003", CLD_BAS_SW_BUILD_SIZE);
 #endif
+	}
+	else
+	{
+#if 0
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "Philips", CLD_BAS_MANUF_NAME_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "LCT015", CLD_BAS_MODEL_ID_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1.46.13_r26312", CLD_BAS_SW_BUILD_SIZE);
+#else
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ManufacturerName, "NXP", CLD_BAS_MANUF_NAME_SIZE);
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8ModelIdentifier, "ZLL-DimmaLight 0", CLD_BAS_MODEL_ID_SIZE);
+	    sLight[u8Index].sBasicServerCluster.au8ModelIdentifier[15] = '0' + u8Index;
+	    memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, "1000-0003", CLD_BAS_SW_BUILD_SIZE);
+#endif
+	}
+    memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, fw_time_str, CLD_BAS_SW_BUILD_SIZE);
+    //sLight[u8Index].sBasicServerCluster.au8SWBuildID[15] = '0'
+    //memcpy(sLight[u8Index].sBasicServerCluster.au8SWBuildID, fw_date_str, CLD_BAS_SW_BUILD_SIZE);
+
+    memcpy(sLight[u8Index].sBasicServerCluster.au8DateCode, fw_date_str, CLD_BAS_DATE_SIZE);
 
     sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_STOP_EFFECT;
     sIdEffect[u8Index].u8Tick = 0;
+
+    DBG_vPrintf(TRUE, "\nLight %s - %s - %s - %s",
+    		sLight[u8Index].sBasicServerCluster.au8ManufacturerName,
+    		sLight[u8Index].sBasicServerCluster.au8ModelIdentifier,
+    		sLight[u8Index].sBasicServerCluster.au8SWBuildID,
+    		sLight[u8Index].sBasicServerCluster.au8DateCode);
 }
 
 /****************************************************************************
@@ -267,24 +305,28 @@ PUBLIC void vAPP_ZCL_DeviceSpecific_Init(uint8 u8Index)
  ****************************************************************************/
 PUBLIC void APP_vHandleIdentify(uint8 u8Index, uint16 u16Time) {
 
-    uint8 u8Red, u8Green, u8Blue;
+    uint8 u8Red=0, u8Green=0, u8Blue=0;
 
     DBG_vPrintf(TRACE_LIGHT_TASK, "JP Time %d\n", u16Time);
 
     if (sIdEffect[u8Index].u8Effect < E_CLD_IDENTIFY_EFFECT_STOP_EFFECT) {
         /* do nothing */
         //DBG_vPrintf(TRACE_LIGHT_TASK, "Effect do nothing\n");
+    	DBG_vPrintf(TRUE, "\n#%d, Identify Stop", u8Index);
     }
     else if (u16Time == 0)
     {
+    	DBG_vPrintf(TRUE, "\n#%d, Identify End", u8Index);
+
             /*
              * Restore to off/off/colour state
              */
-        DBG_vPrintf(TRACE_PATH, "\nPath 3");
 
 
-        vApp_eCLD_ColourControl_GetRGB(u8Index, &u8Red, &u8Green, &u8Blue);
-
+		if (sDeviceTable.asDeviceRecords[u8Index].u16DeviceId == COLOUR_LIGHT_DEVICE_ID)
+		{
+	        vApp_eCLD_ColourControl_GetRGB(u8Index, &u8Red, &u8Green, &u8Blue);
+		}
         DBG_vPrintf(TRACE_LIGHT_TASK, "R %d G %d B %d L %d Hue %d Sat %d\n", u8Red, u8Green, u8Blue,
                             sLight[u8Index].sLevelControlServerCluster.u8CurrentLevel,
                             sLight[u8Index].sColourControlServerCluster.u8CurrentHue,
@@ -300,11 +342,25 @@ PUBLIC void APP_vHandleIdentify(uint8 u8Index, uint16 u16Time) {
                             u8Blue);
     }
     else
-        {
-            /* Set the Identify levels */
-            DBG_vPrintf(TRACE_PATH, "\nPath 4");
-            vRGBLight_SetLevels(u8Index, TRUE, 159, 250, 0, 0);
-        }
+    {
+    	uint8 u8Level = CLD_LEVELCONTROL_MAX_LEVEL;
+
+    	DBG_vPrintf(TRUE, "\n#%d, Identify Start", u8Index);
+
+        /* Set the Identify levels */
+		if (sDeviceTable.asDeviceRecords[u8Index].u16DeviceId == COLOUR_LIGHT_DEVICE_ID)
+		{
+			u8Red = 250;
+			u8Green = 0;
+			u8Blue = 0;
+		}
+    	vRGBLight_SetLevels(u8Index, 
+							TRUE, 
+							u8Level,
+							u8Red,
+	                        u8Green,
+	                        u8Blue);
+    }
 }
 
 /****************************************************************************
@@ -321,7 +377,7 @@ PUBLIC void APP_vHandleIdentify(uint8 u8Index, uint16 u16Time) {
  ****************************************************************************/
 PUBLIC void vIdEffectTick(uint8 u8Index, uint8 u8Endpoint) {
 
-    if (u8Endpoint != LIGHT_COLORLIGHT_LIGHT_ENDPOINT(u8Index)) {
+    if (u8Endpoint != LIGHT_LIGHT_ENDPOINT(u8Index)) {
         return;
     }
 
@@ -412,6 +468,7 @@ PUBLIC void vIdEffectTick(uint8 u8Index, uint8 u8Endpoint) {
 PUBLIC void vStartEffect(uint8 u8Index, uint8 u8Effect) {
     switch (u8Effect) {
         case E_CLD_IDENTIFY_EFFECT_BLINK:
+        	DBG_vPrintf(TRUE, "\n#%d, Effect Blink", u8Index);
             sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_BLINK;
             sIdEffect[u8Index].u8Level = 250;
             sIdEffect[u8Index].u8Red = 255;
@@ -422,16 +479,18 @@ PUBLIC void vStartEffect(uint8 u8Index, uint8 u8Effect) {
             sIdEffect[u8Index].u8Tick = 10;
             break;
         case E_CLD_IDENTIFY_EFFECT_BREATHE:
+        	DBG_vPrintf(TRUE, "\n#%d, Effect Breath", u8Index);
             sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_BREATHE;
             sIdEffect[u8Index].bDirection = 1;
             sIdEffect[u8Index].bFinish = FALSE;
             sIdEffect[u8Index].u8Level = 0;
             sIdEffect[u8Index].u8Count = 15;
-            eCLD_ColourControl_GetRGB( LIGHT_COLORLIGHT_LIGHT_ENDPOINT(u8Index), &sIdEffect[u8Index].u8Red, &sIdEffect[u8Index].u8Green, &sIdEffect[u8Index].u8Blue);
+            eCLD_ColourControl_GetRGB( LIGHT_LIGHT_ENDPOINT(u8Index), &sIdEffect[u8Index].u8Red, &sIdEffect[u8Index].u8Green, &sIdEffect[u8Index].u8Blue);
             APP_ZCL_vSetIdentifyTime(u8Index, 17);
             sIdEffect[u8Index].u8Tick = 200;
             break;
         case E_CLD_IDENTIFY_EFFECT_OKAY:
+        	DBG_vPrintf(TRUE, "\n#%d, Effect Okay", u8Index);
             sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_OKAY;
             sIdEffect[u8Index].bFinish = FALSE;
             sIdEffect[u8Index].u8Level = 250;
@@ -442,6 +501,7 @@ PUBLIC void vStartEffect(uint8 u8Index, uint8 u8Effect) {
             sIdEffect[u8Index].u8Tick = 10;
             break;
         case E_CLD_IDENTIFY_EFFECT_CHANNEL_CHANGE:
+        	DBG_vPrintf(TRUE, "\n#%d, Effect Channel Change", u8Index);
             sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_CHANNEL_CHANGE;
             sIdEffect[u8Index].u8Level = 250;
             sIdEffect[u8Index].u8Red = 255;
@@ -453,6 +513,7 @@ PUBLIC void vStartEffect(uint8 u8Index, uint8 u8Effect) {
             break;
 
         case E_CLD_IDENTIFY_EFFECT_FINISH_EFFECT:
+        	DBG_vPrintf(TRUE, "\n#%d, Effect Finish", u8Index);
             if (sIdEffect[u8Index].u8Effect < E_CLD_IDENTIFY_EFFECT_STOP_EFFECT)
             {
                 DBG_vPrintf(TRACE_LIGHT_TASK, "\n<FINISH>");
@@ -460,6 +521,7 @@ PUBLIC void vStartEffect(uint8 u8Index, uint8 u8Effect) {
             }
             break;
         case E_CLD_IDENTIFY_EFFECT_STOP_EFFECT:
+        	DBG_vPrintf(TRUE, "\n#%d, Effect Stop", u8Index);
             sIdEffect[u8Index].u8Effect = E_CLD_IDENTIFY_EFFECT_STOP_EFFECT;
             APP_ZCL_vSetIdentifyTime(u8Index, 1);
             break;

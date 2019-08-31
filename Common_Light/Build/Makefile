@@ -101,7 +101,7 @@ endif
 
 CFLAGS += -D$(TARGET)
 
-CHANNEL ?=0
+CHANNEL ?=11
 ifneq ($(CHANNEL), 0)
 CFLAGS += -DMK_CHANNEL=$(CHANNEL)
 endif
@@ -118,7 +118,7 @@ ifeq ($(OTA),1)
 STACK_SIZE ?= 6000
 MINIMUM_HEAP_SIZE ?= 2000
 
-CFLAGS  += -DBUILD_OTA
+#CFLAGS  += -DBUILD_OTA
 APP_CLUSTERS_OTA_SRC ?= 1
 MANUFACTURER_CODE = 0x1037
 CFLAGS += -DCLD_OTA_MANF_ID_VALUE=$(MANUFACTURER_CODE)
@@ -197,16 +197,16 @@ endif
 
 #CFLAGS += -DNXP_HARDWARE
 #CFLAGS += -DDEBUG_DRIVER
-#CFLAGS += -DDEBUG_ZCL
-#CFLAGS += -DDEBUG_APP
+CFLAGS += -DDEBUG_ZCL
+CFLAGS += -DDEBUG_APP
 #CFLAGS += -DDEBUG_START_UP
-#CFLAGS += -DDEBUG_LIGHT_NODE
-#CFLAGS += -DDEBUG_LIGHT_TASK
+CFLAGS += -DDEBUG_LIGHT_NODE
+CFLAGS += -DDEBUG_LIGHT_TASK
 #TRACE_COMMISSION shows discovery
-#CFLAGS += -DDEBUG_JOIN
+CFLAGS += -DDEBUG_JOIN
 #TRACE_COMMISSION shows discovery
-#CFLAGS += -DDEBUG_COMMISSION
-#CFLAGS += -DDEBUG_CLASSIC_JOIN
+CFLAGS += -DDEBUG_COMMISSION
+CFLAGS += -DDEBUG_CLASSIC_JOIN
 #CFLAGS +=  -DDEBUG_EXCEPTIONS
 #CFLAGS += -DDEBUG_TEMPERATURE
 
@@ -222,6 +222,8 @@ endif
 #CFLAGS += -DDEBUG_APP_OTA
 
 #CFLAGS  += -DSTRICT_PARAM_CHECK
+
+CFLAGS += -DSVN_VERSION=1234
 ###############################################################################
 # Path definitions
 
@@ -379,6 +381,7 @@ include $(SDK_BASE_DIR)/Stack/Common/Build/config.mk
 
 TEMP = $(APPSRC:.c=.o)
 APPOBJS_TMP = $(TEMP:.S=.o)
+APPOBJS_TMP += version.o
 APPOBJS := $(addprefix $(DEV_BLD_DIR)/,$(APPOBJS_TMP))
 
 ###############################################################################
@@ -413,6 +416,13 @@ endif
 -include $(APPDEPS)
 $(DEV_BLD_DIR)/%.d:
 	rm -f $*.o
+
+$(DEV_SRC_DIR)/version.c: force
+	echo '#include "version.h"' > $@
+	echo 'char fw_date_str[] = ' >> $@
+	date +'"%Y%m%d";' >> $@;
+	echo 'char fw_time_str[] = ' >> $@
+	date +'"%H%M";' >> $@;
 
 $(DEV_SRC_DIR)/os_gen.c $(DEV_SRC_DIR)/os_gen.h $(DEV_SRC_DIR)/os_irq.S $(DEV_SRC_DIR)/os_irq_alignment.S $(DEV_SRC_DIR)/os_irq_buserror.S $(DEV_SRC_DIR)/os_irq_illegalinstruction.S $(DEV_SRC_DIR)/os_irq_stackoverflowexception.S $(DEV_SRC_DIR)/os_irq_unimplementedmodule.S: $(APP_SRC_DIR)/App_ZLL_Light_$(JENNIC_CHIP_FAMILY)$(OS_CONFIG_OPT).oscfgdiag $(OSCONFIG)
 	$(info Configuring the OS ...)
@@ -470,6 +480,8 @@ endif
 	rm -f $(DEV_BLD_DIR)/$(TARGET)_$(JENNIC_CHIP)$(BIN_SUFFIX).bin
 	rm -f $(DEV_BLD_DIR)/OTABuild/Light.bin
 endif	
+
+force:
 
 ###############################################################################
 

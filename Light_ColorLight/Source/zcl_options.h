@@ -111,8 +111,10 @@ PUBLIC void vLoadScenesNVM(void);
 #define CLD_LEVEL_CONTROL
 #define LEVEL_CONTROL_SERVER
 #define CLD_LEVELCONTROL_TICKS_PER_SECOND                   10
-#define CLD_LEVELCONTROL_MIN_LEVEL                          (1)
-#define CLD_LEVELCONTROL_MAX_LEVEL                          (0xfe)
+//#define CLD_LEVELCONTROL_MIN_LEVEL                          (1)
+//#define CLD_LEVELCONTROL_MAX_LEVEL                          (0xfe)
+#define CLD_LEVELCONTROL_MIN_LEVEL                          (0)
+#define CLD_LEVELCONTROL_MAX_LEVEL                          (0xff)
 
 
 #if 0

@@ -37,6 +37,7 @@
 #define APP_COLOR_LIGHT_H
 
 #include "colour_light.h"
+#include "dimmable_light.h"
 #include "commission_endpoint.h"
 
 /****************************************************************************/

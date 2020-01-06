@@ -1,2 +1,2 @@
-# zigbee-lights-bridge
-ZigbeeLightsBridge
+# zigbee-lights
+ZigbeeLights

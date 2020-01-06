@@ -731,7 +731,7 @@ OS_TASK(APP_Commission_Task) {
 
             ZPS_eAplAibSetApsTrustCenterAddress(0xffffffffffffffffULL);
 #if PERMIT_JOIN
-            ZPS_eAplZdoPermitJoining( PERMIT_JOIN_TIME);
+            ZPS_eAplZdoPermitJoining(PERMIT_JOIN_TIME);
 #endif
 
             eState = E_IDLE;

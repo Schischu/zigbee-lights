@@ -52,7 +52,7 @@ JENNIC_SDK ?= JN-SW-4168
 ###############################################################################
 # Default meshbee target hardware
 DR ?= DR1175
-NUMBER_BULBS ?= 2
+NUMBER_BULBS ?= 4
 CFLAGS  += -DBULBS_COUNT=$(NUMBER_BULBS)
 
 CFLAGS += -DMONO_ON_OFF
@@ -101,7 +101,7 @@ endif
 
 CFLAGS += -D$(TARGET)
 
-CHANNEL ?=11
+CHANNEL ?= 0
 ifneq ($(CHANNEL), 0)
 CFLAGS += -DMK_CHANNEL=$(CHANNEL)
 endif
@@ -197,16 +197,16 @@ endif
 
 #CFLAGS += -DNXP_HARDWARE
 #CFLAGS += -DDEBUG_DRIVER
-CFLAGS += -DDEBUG_ZCL
-CFLAGS += -DDEBUG_APP
+#CFLAGS += -DDEBUG_ZCL
+#CFLAGS += -DDEBUG_APP
 #CFLAGS += -DDEBUG_START_UP
-CFLAGS += -DDEBUG_LIGHT_NODE
-CFLAGS += -DDEBUG_LIGHT_TASK
+#CFLAGS += -DDEBUG_LIGHT_NODE
+#CFLAGS += -DDEBUG_LIGHT_TASK
 #TRACE_COMMISSION shows discovery
-CFLAGS += -DDEBUG_JOIN
+#CFLAGS += -DDEBUG_JOIN
 #TRACE_COMMISSION shows discovery
-CFLAGS += -DDEBUG_COMMISSION
-CFLAGS += -DDEBUG_CLASSIC_JOIN
+#CFLAGS += -DDEBUG_COMMISSION
+#CFLAGS += -DDEBUG_CLASSIC_JOIN
 #CFLAGS +=  -DDEBUG_EXCEPTIONS
 #CFLAGS += -DDEBUG_TEMPERATURE
 
@@ -419,9 +419,9 @@ $(DEV_BLD_DIR)/%.d:
 
 $(DEV_SRC_DIR)/version.c: force
 	echo '#include "version.h"' > $@
-	echo 'char fw_date_str[] = ' >> $@
+	echo 'const char fw_date_str[VERSION_DATE_LEN] = ' >> $@
 	date +'"%Y%m%d";' >> $@;
-	echo 'char fw_time_str[] = ' >> $@
+	echo 'const char fw_time_str[VERSION_TIME_LEN] = ' >> $@
 	date +'"%H%M";' >> $@;
 
 $(DEV_SRC_DIR)/os_gen.c $(DEV_SRC_DIR)/os_gen.h $(DEV_SRC_DIR)/os_irq.S $(DEV_SRC_DIR)/os_irq_alignment.S $(DEV_SRC_DIR)/os_irq_buserror.S $(DEV_SRC_DIR)/os_irq_illegalinstruction.S $(DEV_SRC_DIR)/os_irq_stackoverflowexception.S $(DEV_SRC_DIR)/os_irq_unimplementedmodule.S: $(APP_SRC_DIR)/App_ZLL_Light_$(JENNIC_CHIP_FAMILY)$(OS_CONFIG_OPT).oscfgdiag $(OSCONFIG)

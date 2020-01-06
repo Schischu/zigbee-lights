@@ -45,6 +45,7 @@
 /****************************************************************************/
 
 extern tsZLL_ColourLightDevice sLight[ZLL_NUMBER_DEVICES];
+//extern tsZLL_DimmableLightDevice sLight[ZLL_NUMBER_DEVICES];
 extern tsCLD_ZllDeviceTable sDeviceTable;
 
 /****************************************************************************/
@@ -56,7 +57,7 @@ PUBLIC teZCL_Status eApp_ZLL_RegisterEndpoint(tfpZCL_ZCLCallBackFunction fptr,
 PUBLIC void vApp_eCLD_ColourControl_GetRGB(uint8 u8Index, uint8* pu8Red,uint8* pu8Green,uint8* pu8Blue);
 PUBLIC void vAPP_ZCL_DeviceSpecific_Init(uint8 u8Index);
 PUBLIC void vStartEffect(uint8 u8Index, uint8 u8Effect);
-PUBLIC void vIdEffectTick(uint8 u8Index, uint8 u8Endpoint);
+PUBLIC void vIdEffectTick(uint8 u8Endpoint);
 
 PUBLIC void vRGBLight_SetLevels(uint8 u8Index, bool_t bOn, uint8 u8Level, uint8 u8Red,
                                 uint8 u8Green, uint8 u8Blue);

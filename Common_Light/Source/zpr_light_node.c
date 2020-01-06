@@ -161,7 +161,9 @@ static const uint8 s_au8ZllLnkKeyArray[16] = {0x81, 0x42, 0x86, 0x86, 0x5D, 0xC1
 #ifdef MK_CHANNEL
 const uint8 u8DiscChannels[] = { MK_CHANNEL, MK_CHANNEL, MK_CHANNEL, MK_CHANNEL };
 #else
-const uint8 u8DiscChannels[] = { 11, 15, 20, 25, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 26 };
+//const uint8 u8DiscChannels[] = { 11, 15, 20, 25, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 26 };
+//const uint8 u8DiscChannels[] = { 11, 15, 20, 25 };
+const uint8 u8DiscChannels[] = { 11 };
 #endif
 
 uint8 u8ChanIdx;
@@ -237,8 +239,8 @@ PRIVATE void vTryNwkJoin(void) {
 uint8 u8Status;
 
     while (u8NwkIdx < u8NwkCount) {
-        if (psNwkDescTbl[u8NwkIdx].u8PermitJoining  ) {
-            DBG_vPrintf(TRACE_CLASSIC, "Try To join %016llx on Ch %d\n", psNwkDescTbl[u8NwkIdx].u64ExtPanId, psNwkDescTbl[u8NwkIdx].u8LogicalChan);
+        if (psNwkDescTbl[u8NwkIdx].u8PermitJoining) {
+            DBG_vPrintf(TRACE_CLASSIC, "Try To join %016llx on Ch %d with PeJoin %d\n", psNwkDescTbl[u8NwkIdx].u64ExtPanId, psNwkDescTbl[u8NwkIdx].u8LogicalChan, psNwkDescTbl[u8NwkIdx].u8PermitJoining);
 
 
             u8Status = ZPS_eAplZdoJoinNetwork( &psNwkDescTbl[u8NwkIdx] );
@@ -247,6 +249,17 @@ uint8 u8Status;
                 u8NwkIdx++;
                 return;
             }
+
+/*
+ * general status type
+ * The value returned can be from any layer of the ZigBee stack
+ * Consult the relevant header file depending on the value
+ * 0x80 - 0x8F : Zigbee device profile (zps_apl_zdp.h)
+ * 0xA0 - 0xBF : Application support sub-layer (zps_apl_aps.h)
+ * 0xC0 - 0xCF : Network layer (zps_nwk_sap.h)
+ * 0xE0 - 0xFF : MAC layer (mac_sap.h)
+ */
+
 #if TRACE_CLASSIC
             else if (u8Status == 0xc3) {
                 ZPS_tsNwkNib * thisNib;
@@ -264,6 +277,10 @@ uint8 u8Status;
                 }
             }
 #endif
+        }
+        else
+        {
+        	DBG_vPrintf(TRACE_CLASSIC, "Skipping %016llx on Ch %d as bridge not searching\n", psNwkDescTbl[u8NwkIdx].u64ExtPanId, psNwkDescTbl[u8NwkIdx].u8LogicalChan);
         }
         u8NwkIdx++;
     }
@@ -328,9 +345,13 @@ PUBLIC void APP_vInitialiseNode(void) {
             &sZllState,
             sizeof(tsZllState), &u16ByteRead);
 
+    if (sZllState.eNodeState == 0xFF)
+    {
+        sZllState.eNodeState = E_STARTUP;
+    }
 
 
-    DBG_vPrintf(TRACE_APP, "\nAPP: PDM Load ZLL_ROUTER returned %d, RecState=%d\n", eStatus, sZllPDDesc.eState);
+    DBG_vPrintf(TRACE_APP, "\nAPP: PDM Load ZLL_ROUTER returned %d, RecState=%d\n", eStatus, /*sZllPDDesc*/sZllState.eState);
 #ifdef CLD_OTA
     vLoadOTAPersistedData();
 #endif
@@ -343,6 +364,7 @@ PUBLIC void APP_vInitialiseNode(void) {
     DBG_vPrintf(DBG_EVENT, "\nContext state:%s(%d)\n",
             apcStateNames[sZllState.eNodeState], sZllState.eNodeState);
 #endif
+
     DBG_vPrintf(TRACE_LIGHT_NODE, "\nZll recovered state %02x\n", sZllState.eState);
 
     //Inter-PAN Messaging is enabled in the ZPS diagram for each node
@@ -616,47 +638,60 @@ OS_TASK(APP_ZPR_Light_Task)
         break;
 
     case E_DISCOVERY:
-        if (sStackEvent.eType == ZPS_EVENT_NWK_DISCOVERY_COMPLETE) {
-            DBG_vPrintf(TRACE_CLASSIC, "NWK_DISCOVERY_COMPLETE st %d c %d sel %d\n",
+        if (sStackEvent.eType == ZPS_EVENT_NWK_DISCOVERY_COMPLETE)
+        {
+            DBG_vPrintf(TRACE_CLASSIC, "NWK_DISCOVERY_COMPLETE status %d count %d select %d\n",
                                 sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus,
                                 sStackEvent.uEvent.sNwkDiscoveryEvent.u8NetworkCount,
                                 sStackEvent.uEvent.sNwkDiscoveryEvent.u8SelectedNetwork);
-                if (((sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus == 0)
-                        || (sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus
-                                == ZPS_NWK_ENUM_NEIGHBOR_TABLE_FULL))) {
-        #if TRACE_CLASSIC
-                    int i;
-                    for (i=0; i<sStackEvent.uEvent.sNwkDiscoveryEvent.u8NetworkCount; i++) {
-                        DBG_vPrintf(TRACE_CLASSIC, "Pan %016llx Ch %d RCap %d PJoin %d Sfpl %d ZBVer %d\n", sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u64ExtPanId
-                                , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8LogicalChan
-                                , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8RouterCapacity
-                                , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8PermitJoining
-                                , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8StackProfile
-                                , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8ZigBeeVersion);
-                    }
-        #endif
-                u8NwkIdx = 0;
-            u8NwkCount = sStackEvent.uEvent.sNwkDiscoveryEvent.u8NetworkCount;
-            psNwkDescTbl = sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors;
-            DBG_vPrintf(TRACE_CLASSIC, "Succ and full - vTryNwkJoin()\n");
-            vTryNwkJoin();
 
-        } else {
-            /* Not scanning slowly ? */
-            if (bScanSlow == FALSE)
+            //if (sStackEvent.uEvent.sNwkDiscoveryEvent.u8SelectedNetwork == 0xFF && u8PermitJoining)
+            //{
+            //	sStackEvent.uEvent.sNwkDiscoveryEvent.u8SelectedNetwork = 0;
+            //}
+
+            if (((sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus == 0)
+                 || (sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus == ZPS_NWK_ENUM_NEIGHBOR_TABLE_FULL)))
             {
-                DBG_vPrintf(TRACE_CLASSIC, "Fail and not full %02x - vDiscoverNetworks()\n", sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus);
-                vDiscoverNetworks();
-            }
-            /* Scanning slowly ? */
-            else
-            {
-                DBG_vPrintf(TRACE_CLASSIC, "Fail and not full %02x - vPickChannel()\n", sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus);
-                /* Go to touchlink channel */
-                vPickChannel(ZPS_pvAplZdoGetNwkHandle());
+#if TRACE_CLASSIC
+                int i;
+                for (i=0; i<sStackEvent.uEvent.sNwkDiscoveryEvent.u8NetworkCount; i++) {
+                    DBG_vPrintf(TRACE_CLASSIC, "Pan %016llx Channel %d\n    RouterCapacity %d\n    PermitJoin %d\n    StackProfile %d\n    ZigBeeVer %d\n"
+                            , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u64ExtPanId
+                            , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8LogicalChan
+                            , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8RouterCapacity
+                            , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8PermitJoining
+                            , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8StackProfile
+                            , sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors[i].u8ZigBeeVersion);
+                }
+#endif
+                u8NwkIdx = 0;
+                u8NwkCount = sStackEvent.uEvent.sNwkDiscoveryEvent.u8NetworkCount;
+                psNwkDescTbl = sStackEvent.uEvent.sNwkDiscoveryEvent.psNwkDescriptors;
+
+                DBG_vPrintf(TRACE_CLASSIC, "Succ and full - vTryNwkJoin()\n");
+
+                vTryNwkJoin();
+
+            } else {
+                /* Not scanning slowly ? */
+                if (bScanSlow == FALSE)
+                {
+                    DBG_vPrintf(TRACE_CLASSIC, "Fail and not full %02x - vDiscoverNetworks()\n", sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus);
+
+                    vDiscoverNetworks();
+                }
+                /* Scanning slowly ? */
+                else
+                {
+                    DBG_vPrintf(TRACE_CLASSIC, "Fail and not full %02x - vPickChannel()\n", sStackEvent.uEvent.sNwkDiscoveryEvent.eStatus);
+
+                    /* Go to touchlink channel */
+                    vPickChannel(ZPS_pvAplZdoGetNwkHandle());
+                }
             }
         }
-    }               // end of discovery complete
+        // end of discovery complete
 
         if (sStackEvent.eType == ZPS_EVENT_NWK_FAILED_TO_JOIN) {
             DBG_vPrintf(TRACE_CLASSIC, "NWK_FAILED_TO_JOIN %02x - vTryNwkJoin\n", sStackEvent.uEvent.sNwkJoinFailedEvent.u8Status  );
@@ -677,12 +712,15 @@ OS_TASK(APP_ZPR_Light_Task)
 
             PDM_eSaveRecordData(PDM_ID_APP_ZLL_ROUTER,&sZllState,sizeof(tsZllState));
             DBG_vPrintf(TRACE_CLASSIC, "NWK_JOINED_AS_ROUTER (CLASSIC)\n");
+
+#if 0
             /* identify to signal the join */
             for (u8Index = 0; u8Index < ZLL_NUMBER_DEVICES; u8Index++)
             {
 				APP_ZCL_vSetIdentifyTime(u8Index, 10);
 				APP_vHandleIdentify(u8Index, 10);
             }
+#endif
         }
         break;
 
